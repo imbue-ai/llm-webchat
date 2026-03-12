@@ -18,6 +18,7 @@ See README.md for context and the vision for the project.
 - Use frozen pydantic models for most classes.
 - Use pytest for testing.
 - Always place imports at the top level.
+- Avoid async code when possible; prefer synchronous implementations.
 - When done, validate your changes by running `uv run pytest`.
 
 ### Typescript

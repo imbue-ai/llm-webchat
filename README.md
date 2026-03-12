@@ -46,10 +46,7 @@ The following environment variables are recognized:
 - `LLM_WEBCHAT_JAVASCRIPT_PLUGINS`: a comma separated list of .js files containing frontend plugins (see below).
 - `LLM_WEBCHAT_STATIC_PATHS`: a comma separated list of additional paths to resources that should be served from under `/static`. Files and directories are both accepted.
 
-The web server can be extended using [pluggy](https://github.com/pytest-dev/pluggy) by providing implementation to the:
-
-- `llm_webchat.endpoint` hookspec to add more endpoints
-- `llm_webchat.static_paths` hookspec to add additional default static paths.
+The web server can be extended using [pluggy](https://github.com/pytest-dev/pluggy) by providing an implementation of the `llm_webchat.hookspecs.endpoint` hookspec to add more endpoints (including static file routes).
 
 
 ### Frontend
