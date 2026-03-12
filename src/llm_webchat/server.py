@@ -1,5 +1,6 @@
 from fastapi import FastAPI
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse
+from fastapi.responses import JSONResponse
 
 from llm_webchat.plugins import get_plugin_manager
 
@@ -13,15 +14,11 @@ def _list_conversations(count: int = 8) -> JSONResponse:
 
 
 def _get_conversation(conversation_id: str) -> JSONResponse:
-    return JSONResponse(
-        content={"id": conversation_id, "message": "Hello, world!"}
-    )
+    return JSONResponse(content={"id": conversation_id, "message": "Hello, world!"})
 
 
 def _create_conversation() -> JSONResponse:
-    return JSONResponse(
-        content={"message": "Hello, world!"}, status_code=201
-    )
+    return JSONResponse(content={"message": "Hello, world!"}, status_code=201)
 
 
 def _send_message(conversation_id: str) -> JSONResponse:
