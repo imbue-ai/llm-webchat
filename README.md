@@ -15,6 +15,42 @@ llm install llm-webchat
 llm webchat
 ```
 
+## Development
+
+### Prerequisites
+
+- Python 3.10+ with [uv](https://github.com/astral-sh/uv)
+- Node.js 18+
+
+### Building and running
+
+Build the frontend (output goes to `src/llm_webchat/static/`):
+
+```bash
+cd frontend
+npm install
+npm run build
+```
+
+Run the backend (serves the built frontend at `/`):
+
+```bash
+uv run uvicorn llm_webchat.server:create_application --factory
+```
+
+For frontend development with hot reload (proxies `/api` requests to the backend):
+
+```bash
+cd frontend
+npm run dev
+```
+
+### Running tests
+
+```bash
+uv run pytest
+```
+
 ## Architecture
 
 There is a backend in Python and a frontend written in Typescript. The
