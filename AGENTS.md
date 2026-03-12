@@ -9,6 +9,7 @@ See README.md for context and the vision for the project.
 - Do not use abbreviations in variable (class, function, ...) names. It's fine for names to be somewhat verbose.
 - Omit docstrings and comments if they don't add any value beyond what can be obviously inferred from the function signature / class name.
 - Do not throw builtin errors; always replace them with dedicated error subclasses.
+- Make sure to use up-to-date versions of all libraries.
 
 ### Python
 
@@ -24,8 +25,7 @@ See README.md for context and the vision for the project.
 - Use modern Typescript code.
 - When done, validate your changes by running `npm lint` and `npm test`.
 
+### CSS
 
-## Other guidelines
-
-- Make sure to use up-to-date versions of all libraries.
-- The default interface is familiar to users of existing web AI assistant interfaces.
+- Add semantic class names to components make restyling easy.
+- Make most important values part of `@theme` as variables that can be referenced by extension authors.
