@@ -65,28 +65,29 @@ make this easier, the default DOM will contain certain stable
 elements / containers with well data attributes which plugins
 can use as anchor points:
 
-    - `<div data-slot="header">`
-    - `<div data-slot="sidebar">`
-    - `<div data-slot="content">`
-    - `<div data-slot="footer">`
-    - `<div data-slot="message" data-message-id="...">` 
-    - `<div data-slot="conversation-selector">`
-    - `<div data-slot="conversation-detail" data-conversation-id="...">`
+- `<div data-slot="header">`
+- `<div data-slot="sidebar">`
+- `<div data-slot="content">`
+- `<div data-slot="footer">`
+- `<div data-slot="message" data-message-id="...">`
+- `<div data-slot="conversation-selector">`
+- `<div data-slot="conversation-detail" data-conversation-id="...">`
 
 Furthermore, there's a global "$llm" object that can be used to:
-    - Claim ownership of a specific component type:
-        - `llm.claim("header")` (or `"sidebar"`, `"content"`, `"message"`, ...)
-        - When claimed, only the component container is rendered by the core loop (contents are expected to be provided by the plugin).
-        - Returns true when the claim succeeded, false otherwise (e.g. when already claimed by another plugin).
-        - (This is to prevent conflicts between the renders done by the core mithril.js loop and the renders done by the plugin.)
-    - Get specific parts of the current page state:
-        - `$llm.getMessage(messageId)`
-        - `$llm.getConversations()`
-        - `$llm.getConversation(conversationId)`
-    - Register for certain events:
-        - `$llm.on("ready")` - when the main APP is initialized
-        - `$llm.on("get_conversations")` - when a response to `GET /api/conversations` arrives.
-        - `$llm.on("get_conversation")`
-        - `$llm.on("post_conversation")`
-        - `$llm.on("get_message")`
-        - `$llm.on("stream_event")`
+
+- Claim ownership of a specific component type:
+    - `llm.claim("header")` (or `"sidebar"`, `"content"`, `"message"`, ...)
+    - When claimed, only the component container is rendered by the core loop (contents are expected to be provided by the plugin).
+    - Returns true when the claim succeeded, false otherwise (e.g. when already claimed by another plugin).
+    - (This is to prevent conflicts between the renders done by the core mithril.js loop and the renders done by the plugin.)
+- Get specific parts of the current page state:
+    - `$llm.getMessage(messageId)`
+    - `$llm.getConversations()`
+    - `$llm.getConversation(conversationId)`
+- Register for certain events:
+    - `$llm.on("ready")` - when the main APP is initialized
+    - `$llm.on("get_conversations")` - when a response to `GET /api/conversations` arrives.
+    - `$llm.on("get_conversation")`
+    - `$llm.on("post_conversation")`
+    - `$llm.on("get_message")`
+    - `$llm.on("stream_event")`
