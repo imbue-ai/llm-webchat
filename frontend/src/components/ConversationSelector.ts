@@ -21,6 +21,9 @@ async function fetchConversations(): Promise<void> {
     });
     conversations = response.conversations;
     loadingError = null;
+    if (!getSelectedConversationId() && conversations.length > 0) {
+      selectConversation(conversations[0].id);
+    }
   } catch (error) {
     loadingError = (error as Error).message;
   }
