@@ -1,4 +1,9 @@
+import json
+import queue
+import subprocess
+import threading
 from collections.abc import AsyncIterator
+from collections.abc import Iterator
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -8,13 +13,17 @@ from fastapi.responses import FileResponse
 from fastapi.responses import HTMLResponse
 from fastapi.responses import JSONResponse
 from fastapi.responses import Response
+from fastapi.responses import StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
 from llm_webchat.database import list_conversations
 from llm_webchat.database import list_responses
 from llm_webchat.database import open_database
+from llm_webchat.event_queues import ConversationEventQueues
 from llm_webchat.models import ConversationListResponse
 from llm_webchat.models import ResponseListResponse
+from llm_webchat.models import SendMessageRequest
+from llm_webchat.models import SendMessageResponse
 from llm_webchat.plugins import get_plugin_manager
 
 STATIC_DIRECTORY = Path(__file__).parent / "static"
@@ -27,6 +36,7 @@ _FRONTEND_NOT_BUILT_HTML = (
 @asynccontextmanager
 async def _lifespan(application: FastAPI) -> AsyncIterator[None]:
     application.state.database = open_database()
+    application.state.conversation_event_queues = ConversationEventQueues()
     yield
 
 
@@ -55,21 +65,83 @@ def _create_conversation() -> JSONResponse:
     return JSONResponse(content={"message": "Hello, world!"}, status_code=201)
 
 
-def _send_message(conversation_id: str) -> JSONResponse:
-    return JSONResponse(
-        content={
-            "conversation_id": conversation_id,
-            "message": "Hello, world!",
-        }
+def _run_llm_subprocess(
+    conversation_event_queues: ConversationEventQueues, conversation_id: str, message: str
+) -> None:
+    conversation_event_queues.broadcast(conversation_id, {"type": "user_message", "content": message})
+    conversation_event_queues.broadcast(conversation_id, {"type": "message_start"})
+
+    try:
+        process = subprocess.Popen(
+            ["llm", "--cid", conversation_id, message],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+
+        assert process.stdout is not None
+        while True:
+            chunk = process.stdout.read(256)
+            if not chunk:
+                break
+            text = chunk.decode("utf-8", errors="replace")
+            conversation_event_queues.broadcast(conversation_id, {"type": "message_delta", "content": text})
+
+        process.wait()
+
+        if process.returncode != 0:
+            stderr_output = ""
+            if process.stderr:
+                stderr_output = process.stderr.read().decode("utf-8", errors="replace")
+            error_content = stderr_output or f"Process exited with code {process.returncode}"
+            conversation_event_queues.broadcast(conversation_id, {"type": "error", "content": error_content})
+
+        conversation_event_queues.broadcast(conversation_id, {"type": "message_end"})
+
+    except Exception as exception:
+        conversation_event_queues.broadcast(conversation_id, {"type": "error", "content": str(exception)})
+        conversation_event_queues.broadcast(conversation_id, {"type": "message_end"})
+
+
+def _send_message(conversation_id: str, send_message_request: SendMessageRequest, request: Request) -> JSONResponse:
+    conversation_event_queues: ConversationEventQueues = request.app.state.conversation_event_queues
+
+    thread = threading.Thread(
+        target=_run_llm_subprocess,
+        args=(conversation_event_queues, conversation_id, send_message_request.message),
+        daemon=True,
     )
+    thread.start()
+
+    response = SendMessageResponse(status="ok")
+    return JSONResponse(content=response.model_dump())
 
 
-def _stream_events(conversation_id: str) -> JSONResponse:
-    return JSONResponse(
-        content={
-            "conversation_id": conversation_id,
-            "message": "Hello, world!",
-        }
+def _stream_events(conversation_id: str, request: Request) -> StreamingResponse:
+    conversation_event_queues: ConversationEventQueues = request.app.state.conversation_event_queues
+    event_queue = conversation_event_queues.register(conversation_id)
+
+    def event_generator() -> Iterator[str]:
+        try:
+            while True:
+                try:
+                    event = event_queue.get(timeout=30)
+                    if event is None:
+                        break
+                    yield f"data: {json.dumps(event)}\n\n"
+                except queue.Empty:
+                    yield ": keepalive\n\n"
+        except GeneratorExit:
+            pass
+        finally:
+            conversation_event_queues.unregister(conversation_id, event_queue)
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+        },
     )
 
 

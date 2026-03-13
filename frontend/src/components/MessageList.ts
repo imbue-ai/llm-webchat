@@ -17,10 +17,17 @@ interface ResponseListResponse {
   responses: ResponseItem[];
 }
 
+interface StreamingMessage {
+  userPrompt: string;
+  assistantContent: string;
+  finalized: boolean;
+}
+
 let responses: ResponseItem[] = [];
 let loading = false;
 let loadingError: string | null = null;
 let currentConversationId: string | null = null;
+let streamingMessage: StreamingMessage | null = null;
 
 export async function fetchResponses(conversationId: string): Promise<void> {
   if (conversationId === currentConversationId) {
@@ -30,6 +37,7 @@ export async function fetchResponses(conversationId: string): Promise<void> {
   loading = true;
   loadingError = null;
   responses = [];
+  streamingMessage = null;
 
   try {
     const result = await m.request<ResponseListResponse>({
@@ -47,6 +55,40 @@ export async function fetchResponses(conversationId: string): Promise<void> {
       loading = false;
       loadingError = (error as Error).message;
     }
+  }
+}
+
+export function startStreamingMessage(userPrompt: string): void {
+  streamingMessage = {
+    userPrompt,
+    assistantContent: "",
+    finalized: false,
+  };
+}
+
+export function appendStreamingDelta(content: string): void {
+  if (streamingMessage !== null) {
+    streamingMessage = {
+      ...streamingMessage,
+      assistantContent: streamingMessage.assistantContent + content,
+    };
+  }
+}
+
+export function finalizeStreamingMessage(): void {
+  if (streamingMessage !== null) {
+    streamingMessage = {
+      ...streamingMessage,
+      finalized: true,
+    };
+  }
+}
+
+export function refetchCurrentConversation(): void {
+  const conversationId = currentConversationId;
+  if (conversationId !== null) {
+    currentConversationId = null;
+    fetchResponses(conversationId);
   }
 }
 
@@ -68,6 +110,21 @@ function renderAssistantMessage(responseItem: ResponseItem): m.Vnode {
       "div",
       { class: "message-content whitespace-pre-wrap text-sm text-text-primary leading-relaxed" },
       responseItem.response,
+    ),
+  ]);
+}
+
+function renderStreamingAssistantMessage(content: string): m.Vnode {
+  return m("div", { class: "message message-assistant message-streaming flex justify-start mb-4" }, [
+    m(
+      "div",
+      {
+        class: "message-assistant-bubble max-w-[70%] rounded-lg bg-surface-secondary px-4 py-3 text-text-primary",
+      },
+      [
+        m("div", { class: "message-role text-xs font-semibold text-text-secondary mb-1" }, "Assistant"),
+        m("div", { class: "message-content whitespace-pre-wrap text-sm" }, content || "…"),
+      ],
     ),
   ]);
 }
@@ -100,7 +157,7 @@ export const MessageList: m.Component<{ conversationId: string | null }> = {
       );
     }
 
-    if (responses.length === 0) {
+    if (responses.length === 0 && streamingMessage === null) {
       return m(
         "div",
         { class: "message-list-empty flex items-center justify-center h-full" },
@@ -114,6 +171,11 @@ export const MessageList: m.Component<{ conversationId: string | null }> = {
         messageNodes.push(renderUserMessage(responseItem.prompt));
       }
       messageNodes.push(renderAssistantMessage(responseItem));
+    }
+
+    if (streamingMessage !== null) {
+      messageNodes.push(renderUserMessage(streamingMessage.userPrompt));
+      messageNodes.push(renderStreamingAssistantMessage(streamingMessage.assistantContent));
     }
 
     return m(

@@ -32,3 +32,11 @@ class ResponseItem(BaseModel, frozen=True):
 
 class ResponseListResponse(BaseModel, frozen=True):
     responses: list[ResponseItem]
+
+
+class SendMessageRequest(BaseModel, frozen=True):
+    message: str
+
+
+class SendMessageResponse(BaseModel, frozen=True):
+    status: str
