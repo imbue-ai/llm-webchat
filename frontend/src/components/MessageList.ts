@@ -64,7 +64,6 @@ function renderUserMessage(prompt: string): m.Vnode {
 
 function renderAssistantMessage(responseItem: ResponseItem): m.Vnode {
   return m("div", { class: "message message-assistant mb-6" }, [
-    m("div", { class: "message-role text-xs font-semibold text-text-secondary mb-1" }, responseItem.model),
     m(
       "div",
       { class: "message-content whitespace-pre-wrap text-sm text-text-primary leading-relaxed" },
