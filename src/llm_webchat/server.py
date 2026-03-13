@@ -84,7 +84,7 @@ def _run_llm_subprocess(
 
         assert process.stdout is not None
         while True:
-            chunk = process.stdout.read(256)
+            chunk = process.stdout.read(16)
             if not chunk:
                 break
             text = chunk.decode("utf-8", errors="replace")
