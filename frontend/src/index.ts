@@ -4,5 +4,8 @@ import { App } from "./components/App";
 
 const rootElement = document.getElementById("app");
 if (rootElement) {
-  m.mount(rootElement, App);
+  m.route(rootElement, "/", {
+    "/": App,
+    "/conversations/:conversationId": App,
+  });
 }

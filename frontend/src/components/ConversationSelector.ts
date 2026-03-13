@@ -11,7 +11,6 @@ interface ConversationListResponse {
 }
 
 let conversations: Conversation[] = [];
-let selectedConversationId: string | null = null;
 let loadingError: string | null = null;
 
 async function fetchConversations(): Promise<void> {
@@ -28,11 +27,12 @@ async function fetchConversations(): Promise<void> {
 }
 
 function selectConversation(conversationId: string): void {
-  selectedConversationId = conversationId;
+  m.route.set("/conversations/:conversationId", { conversationId });
 }
 
 export function getSelectedConversationId(): string | null {
-  return selectedConversationId;
+  const attrs = m.route.param("conversationId");
+  return attrs ?? null;
 }
 
 export const ConversationSelector: m.Component = {
@@ -40,6 +40,7 @@ export const ConversationSelector: m.Component = {
     fetchConversations();
   },
   view() {
+    const currentConversationId = getSelectedConversationId();
     return m("div", { class: "conversation-selector", "data-slot": "conversation-selector" }, [
       m("h2", { class: "conversation-selector-title text-lg font-semibold text-text-primary" }, "Conversations"),
       loadingError
@@ -57,7 +58,7 @@ export const ConversationSelector: m.Component = {
                     class: [
                       "conversation-selector-item",
                       "cursor-pointer rounded px-3 py-2 text-sm transition-colors",
-                      conversation.id === selectedConversationId
+                      conversation.id === currentConversationId
                         ? "bg-primary/10 text-primary font-medium"
                         : "text-text-secondary hover:bg-surface-secondary hover:text-text-primary",
                     ].join(" "),
