@@ -4,7 +4,23 @@ import { MessageList, fetchResponses, refetchCurrentConversation } from "./Messa
 import { MessageInput } from "./MessageInput";
 import { connectToStream, disconnectFromStream } from "./StreamingConnection";
 
+const SCROLL_BOTTOM_THRESHOLD_PX = 40;
+
 let previousConversationId: string | null = null;
+let userScrolledUp = false;
+
+function isNearBottom(element: HTMLElement): boolean {
+  return element.scrollHeight - element.scrollTop - element.clientHeight < SCROLL_BOTTOM_THRESHOLD_PX;
+}
+
+function scrollToBottom(element: HTMLElement): void {
+  element.scrollTop = element.scrollHeight;
+}
+
+function handleScrollEvent(event: Event): void {
+  const element = event.target as HTMLElement;
+  userScrolledUp = !isNearBottom(element);
+}
 
 export const App: m.Component = {
   view() {
@@ -19,6 +35,7 @@ export const App: m.Component = {
 
     if (previousConversationId !== selectedConversationId && previousConversationId !== null) {
       refetchCurrentConversation();
+      userScrolledUp = false;
     }
     previousConversationId = selectedConversationId;
 
@@ -32,9 +49,23 @@ export const App: m.Component = {
         m("header", { class: "app-header border-b border-border px-6 py-3", "data-slot": "header" }, [
           m("h1", { class: "text-xl font-bold text-text-primary" }, "llm webchat"),
         ]),
-        m("main", { class: "app-content flex-1 overflow-y-auto p-6", "data-slot": "content" }, [
-          m(MessageList, { conversationId: selectedConversationId }),
-        ]),
+        m(
+          "main",
+          {
+            class: "app-content flex-1 overflow-y-auto p-6",
+            "data-slot": "content",
+            onscroll: handleScrollEvent,
+            oncreate: (mainVnode: m.VnodeDOM) => {
+              scrollToBottom(mainVnode.dom as HTMLElement);
+            },
+            onupdate: (mainVnode: m.VnodeDOM) => {
+              if (!userScrolledUp) {
+                scrollToBottom(mainVnode.dom as HTMLElement);
+              }
+            },
+          },
+          [m(MessageList, { conversationId: selectedConversationId })],
+        ),
         m(
           "footer",
           { class: "app-footer border-t border-border px-6 py-3", "data-slot": "footer" },
