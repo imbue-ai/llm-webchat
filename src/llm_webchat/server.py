@@ -1,7 +1,9 @@
 import json
+import logging
 import queue
 import subprocess
 import threading
+import traceback
 from collections.abc import AsyncIterator
 from collections.abc import Iterator
 from contextlib import asynccontextmanager
@@ -25,6 +27,8 @@ from llm_webchat.models import ResponseListResponse
 from llm_webchat.models import SendMessageRequest
 from llm_webchat.models import SendMessageResponse
 from llm_webchat.plugins import get_plugin_manager
+
+logger = logging.getLogger(__name__)
 
 STATIC_DIRECTORY = Path(__file__).parent / "static"
 
@@ -92,12 +96,23 @@ def _run_llm_subprocess(
             stderr_output = ""
             if process.stderr:
                 stderr_output = process.stderr.read().decode("utf-8", errors="replace")
-            error_content = stderr_output or f"Process exited with code {process.returncode}"
+            error_content = stderr_output.strip() or f"Process exited with code {process.returncode}"
+            logger.error(
+                "llm subprocess failed for conversation %s (exit code %d): %s",
+                conversation_id,
+                process.returncode,
+                stderr_output.strip(),
+            )
             conversation_event_queues.broadcast(conversation_id, {"type": "error", "content": error_content})
 
         conversation_event_queues.broadcast(conversation_id, {"type": "message_end"})
 
     except Exception as exception:
+        logger.error(
+            "Exception in llm subprocess for conversation %s:\n%s",
+            conversation_id,
+            traceback.format_exc(),
+        )
         conversation_event_queues.broadcast(conversation_id, {"type": "error", "content": str(exception)})
         conversation_event_queues.broadcast(conversation_id, {"type": "message_end"})
 
