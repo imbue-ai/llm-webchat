@@ -62,13 +62,14 @@ don't need to have node or typescript installed at all.
 Backend uses fastapi + uvicorn. It provides the following endpoints:
 
 - GET "/api/conversations" to list the most recent conversations
-    - accepts the `?count=` parameter, by default `count=8`.
-- GET "/api/conversations/:id to get a conversation, including its message history
-- POST "/api/conversations/ to create a conversation
-- POST "/api/conversations/:id/message to send a new user message to the conversation.
+    - accepts the `?count=` parameter, by default `count=10`.
+- GET "/api/conversations/:id to get a conversation
+- GET "/api/conversations/:id/responses to get all responses in a given conversation
+- POST "/api/conversations/ to create a conversation (by sending the first user message)
+- POST "/api/conversations/:id/ to send a new user message to an existing conversation.
 - GET /api/conversations/:id/stream get a stream of events in
 a given conversation. There are several kinds of events:
-    - `message`: a newly inserted message (typically injected from the outside)
+    - `user_message`: user message that arrived
     - `message_start`, `message_delta`, `message_end`: to stream the current LLM response
     - `error`: to provide details about potential errors
 
@@ -109,7 +110,7 @@ can use as anchor points:
 Furthermore, there's a global "$llm" object that can be used to:
 
 - Claim ownership of a specific component type:
-    - `llm.claim("header")` (or `"sidebar"`, `"content"`, `"message"`, ...)
+    - `$llm.claim("header")` (or `"sidebar"`, `"content"`, `"message"`, ...)
     - When claimed, only the component container is rendered by the core loop (contents are expected to be provided by the plugin).
     - Returns true when the claim succeeded, false otherwise (e.g. when already claimed by another plugin).
     - (This is to prevent conflicts between the renders done by the core mithril.js loop and the renders done by the plugin.)
