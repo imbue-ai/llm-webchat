@@ -1,6 +1,7 @@
 import json
 import logging
 import queue
+import signal
 import subprocess
 import threading
 import traceback
@@ -40,9 +41,27 @@ _FRONTEND_NOT_BUILT_HTML = (
 @asynccontextmanager
 async def _lifespan(application: FastAPI) -> AsyncIterator[None]:
     application.state.database = open_database()
-    application.state.conversation_event_queues = ConversationEventQueues()
+    conversation_event_queues = ConversationEventQueues()
+    application.state.conversation_event_queues = conversation_event_queues
+
+    is_main_thread = threading.current_thread() is threading.main_thread()
+    original_sigint_handler = None
+
+    if is_main_thread:
+        original_sigint_handler = signal.getsignal(signal.SIGINT)
+
+        def _graceful_shutdown_handler(signum: int, frame: object) -> None:
+            conversation_event_queues.shutdown()
+            if callable(original_sigint_handler):
+                original_sigint_handler(signum, frame)
+
+        signal.signal(signal.SIGINT, _graceful_shutdown_handler)
+
     yield
-    application.state.conversation_event_queues.shutdown()
+
+    conversation_event_queues.shutdown()
+    if is_main_thread and original_sigint_handler is not None:
+        signal.signal(signal.SIGINT, original_sigint_handler)
 
 
 def _index() -> Response:
