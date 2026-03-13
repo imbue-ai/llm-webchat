@@ -51,31 +51,24 @@ export async function fetchResponses(conversationId: string): Promise<void> {
 }
 
 function renderUserMessage(prompt: string): m.Vnode {
-  return m("div", { class: "message message-user flex justify-end mb-4" }, [
+  return m("div", { class: "message message-user flex justify-end mb-6" }, [
     m(
       "div",
       {
-        class: "message-user-bubble max-w-[70%] rounded-lg bg-primary/10 px-4 py-3 text-text-primary",
+        class: "message-user-bubble max-w-[85%] rounded-3xl bg-user-bubble-bg px-5 py-3 text-user-bubble-text",
       },
-      [
-        m("div", { class: "message-role text-xs font-semibold text-primary mb-1" }, "You"),
-        m("div", { class: "message-content whitespace-pre-wrap text-sm" }, prompt),
-      ],
+      [m("div", { class: "message-content whitespace-pre-wrap text-sm" }, prompt)],
     ),
   ]);
 }
 
 function renderAssistantMessage(responseItem: ResponseItem): m.Vnode {
-  return m("div", { class: "message message-assistant flex justify-start mb-4" }, [
+  return m("div", { class: "message message-assistant mb-6" }, [
+    m("div", { class: "message-role text-xs font-semibold text-text-secondary mb-1" }, responseItem.model),
     m(
       "div",
-      {
-        class: "message-assistant-bubble max-w-[70%] rounded-lg bg-surface-secondary px-4 py-3 text-text-primary",
-      },
-      [
-        m("div", { class: "message-role text-xs font-semibold text-text-secondary mb-1" }, responseItem.model),
-        m("div", { class: "message-content whitespace-pre-wrap text-sm" }, responseItem.response),
-      ],
+      { class: "message-content whitespace-pre-wrap text-sm text-text-primary leading-relaxed" },
+      responseItem.response,
     ),
   ]);
 }
@@ -124,6 +117,10 @@ export const MessageList: m.Component<{ conversationId: string | null }> = {
       messageNodes.push(renderAssistantMessage(responseItem));
     }
 
-    return m("div", { class: "message-list flex flex-col p-4" }, messageNodes);
+    return m(
+      "div",
+      { class: "message-list mx-auto w-full max-w-(--width-message-column) flex flex-col py-6" },
+      messageNodes,
+    );
   },
 };

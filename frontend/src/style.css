@@ -8,8 +8,11 @@
   --color-text-primary: #111827;
   --color-text-secondary: #6b7280;
   --color-border: #e5e7eb;
+  --color-user-bubble-bg: #2563eb;
+  --color-user-bubble-text: #ffffff;
   --font-family-base: "Inter", ui-sans-serif, system-ui, sans-serif;
   --spacing-page: 1.5rem;
+  --width-message-column: 48rem;
 }
 
 body {
