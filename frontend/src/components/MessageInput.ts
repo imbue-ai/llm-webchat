@@ -1,7 +1,15 @@
 import m from "mithril";
 
+const MAX_TEXTAREA_HEIGHT_PX = 200;
+
 let messageText = "";
 let sending = false;
+
+function autoResizeTextarea(textarea: HTMLTextAreaElement): void {
+  textarea.style.height = "auto";
+  textarea.style.height = `${Math.min(textarea.scrollHeight, MAX_TEXTAREA_HEIGHT_PX)}px`;
+  textarea.style.overflowY = textarea.scrollHeight > MAX_TEXTAREA_HEIGHT_PX ? "auto" : "hidden";
+}
 
 export async function sendMessage(conversationId: string, message: string): Promise<void> {
   if (!message.trim() || sending) {
@@ -41,16 +49,25 @@ export const MessageInput: m.Component<{ conversationId: string | null }> = {
       }
     }
 
-    return m("div", { class: "message-input flex items-end gap-3" }, [
+    return m("div", { class: "message-input mx-auto w-full max-w-(--width-message-column) flex items-end gap-3" }, [
       m("textarea", {
         class:
           "message-input-textbox flex-1 resize-none rounded-lg border border-border bg-surface px-4 py-3 text-sm text-text-primary placeholder:text-text-secondary focus:border-primary focus:outline-none",
+        style: { overflowY: "hidden" },
         placeholder: "Type a message…",
         rows: 1,
         value: messageText,
         disabled: sending,
+        oncreate: (textareaVnode: m.VnodeDOM) => {
+          autoResizeTextarea(textareaVnode.dom as HTMLTextAreaElement);
+        },
+        onupdate: (textareaVnode: m.VnodeDOM) => {
+          autoResizeTextarea(textareaVnode.dom as HTMLTextAreaElement);
+        },
         oninput: (event: Event) => {
-          messageText = (event.target as HTMLTextAreaElement).value;
+          const textarea = event.target as HTMLTextAreaElement;
+          messageText = textarea.value;
+          autoResizeTextarea(textarea);
         },
         onkeydown: handleKeydown,
       }),
