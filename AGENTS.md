@@ -25,6 +25,7 @@ See README.md for context and the vision for the project.
 
 - Use modern Typescript code.
 - When done, validate your changes by running `npm lint` and `npm test`.
+- Use async / await instead of raw Promise primitives where possible.
 
 ### CSS
 

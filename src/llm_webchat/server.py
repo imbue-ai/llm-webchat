@@ -51,10 +51,6 @@ def _list_responses_endpoint(request: Request, conversation_id: str) -> Response
     return JSONResponse(content=response.model_dump())
 
 
-def _get_conversation(conversation_id: str) -> JSONResponse:
-    return JSONResponse(content={"id": conversation_id, "message": "Hello, world!"})
-
-
 def _create_conversation() -> JSONResponse:
     return JSONResponse(content={"message": "Hello, world!"}, status_code=201)
 
@@ -82,7 +78,6 @@ def create_application() -> FastAPI:
 
     application.add_api_route("/", _index, methods=["GET"])
     application.add_api_route("/api/conversations", _list_conversations_endpoint, methods=["GET"])
-    application.add_api_route("/api/conversations/{conversation_id}", _get_conversation, methods=["GET"])
     application.add_api_route(
         "/api/conversations/{conversation_id}/responses", _list_responses_endpoint, methods=["GET"]
     )
