@@ -11,8 +11,10 @@ from fastapi.responses import Response
 from fastapi.staticfiles import StaticFiles
 
 from llm_webchat.database import list_conversations
+from llm_webchat.database import list_responses
 from llm_webchat.database import open_database
 from llm_webchat.models import ConversationListResponse
+from llm_webchat.models import ResponseListResponse
 from llm_webchat.plugins import get_plugin_manager
 
 STATIC_DIRECTORY = Path(__file__).parent / "static"
@@ -39,6 +41,13 @@ def _list_conversations_endpoint(request: Request, count: int = 10) -> Response:
     database = request.app.state.database
     conversations = list_conversations(database, count=count)
     response = ConversationListResponse(conversations=conversations)
+    return JSONResponse(content=response.model_dump())
+
+
+def _list_responses_endpoint(request: Request, conversation_id: str) -> Response:
+    database = request.app.state.database
+    responses = list_responses(database, conversation_id)
+    response = ResponseListResponse(responses=responses)
     return JSONResponse(content=response.model_dump())
 
 
@@ -74,6 +83,9 @@ def create_application() -> FastAPI:
     application.add_api_route("/", _index, methods=["GET"])
     application.add_api_route("/api/conversations", _list_conversations_endpoint, methods=["GET"])
     application.add_api_route("/api/conversations/{conversation_id}", _get_conversation, methods=["GET"])
+    application.add_api_route(
+        "/api/conversations/{conversation_id}/responses", _list_responses_endpoint, methods=["GET"]
+    )
     application.add_api_route("/api/conversations", _create_conversation, methods=["POST"])
     application.add_api_route("/api/conversations/{conversation_id}/message", _send_message, methods=["POST"])
     application.add_api_route("/api/conversations/{conversation_id}/stream", _stream_events, methods=["GET"])

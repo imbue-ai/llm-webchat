@@ -15,3 +15,20 @@ class Message(BaseModel, frozen=True):
     id: str
     conversation_id: str
     content: str
+
+
+class ResponseItem(BaseModel, frozen=True):
+    id: str
+    model: str
+    prompt: str | None
+    system: str | None
+    response: str
+    conversation_id: str
+    datetime_utc: str
+    duration_ms: int | None
+    input_tokens: int | None
+    output_tokens: int | None
+
+
+class ResponseListResponse(BaseModel, frozen=True):
+    responses: list[ResponseItem]

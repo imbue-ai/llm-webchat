@@ -7,6 +7,7 @@ from llm.migrations import migrate
 from llm_webchat.config import Config
 from llm_webchat.config import load_config
 from llm_webchat.models import Conversation
+from llm_webchat.models import ResponseItem
 
 
 def open_database() -> sqlite_utils.Database:
@@ -44,6 +45,34 @@ def list_conversations(
             id=row[0],
             name=row[1] or "",
             model=row[2] or "",
+        )
+        for row in rows
+    ]
+
+
+def list_responses(database: sqlite_utils.Database, conversation_id: str) -> list[ResponseItem]:
+    if "responses" not in database.table_names():
+        return []
+
+    rows = database.execute(
+        "SELECT id, model, prompt, system, response, conversation_id, datetime_utc,"
+        " duration_ms, input_tokens, output_tokens"
+        " FROM responses WHERE conversation_id = ? ORDER BY datetime_utc ASC",
+        [conversation_id],
+    ).fetchall()
+
+    return [
+        ResponseItem(
+            id=row[0],
+            model=row[1] or "",
+            prompt=row[2],
+            system=row[3],
+            response=row[4] or "",
+            conversation_id=row[5],
+            datetime_utc=row[6] or "",
+            duration_ms=row[7],
+            input_tokens=row[8],
+            output_tokens=row[9],
         )
         for row in rows
     ]
