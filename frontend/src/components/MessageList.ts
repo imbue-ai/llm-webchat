@@ -22,7 +22,7 @@ let loading = false;
 let loadingError: string | null = null;
 let currentConversationId: string | null = null;
 
-export function fetchResponses(conversationId: string): void {
+export async function fetchResponses(conversationId: string): Promise<void> {
   if (conversationId === currentConversationId) {
     return;
   }
@@ -31,24 +31,23 @@ export function fetchResponses(conversationId: string): void {
   loadingError = null;
   responses = [];
 
-  m.request<ResponseListResponse>({
-    method: "GET",
-    url: "/api/conversations/:conversationId/responses",
-    params: { conversationId },
-  })
-    .then((result) => {
-      if (conversationId === currentConversationId) {
-        responses = result.responses;
-        loading = false;
-        loadingError = null;
-      }
-    })
-    .catch((error: Error) => {
-      if (conversationId === currentConversationId) {
-        loading = false;
-        loadingError = error.message;
-      }
+  try {
+    const result = await m.request<ResponseListResponse>({
+      method: "GET",
+      url: "/api/conversations/:conversationId/responses",
+      params: { conversationId },
     });
+    if (conversationId === currentConversationId) {
+      responses = result.responses;
+      loading = false;
+      loadingError = null;
+    }
+  } catch (error) {
+    if (conversationId === currentConversationId) {
+      loading = false;
+      loadingError = (error as Error).message;
+    }
+  }
 }
 
 function renderUserMessage(prompt: string): m.Vnode {

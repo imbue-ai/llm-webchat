@@ -14,18 +14,17 @@ let conversations: Conversation[] = [];
 let selectedConversationId: string | null = null;
 let loadingError: string | null = null;
 
-function fetchConversations(): void {
-  m.request<ConversationListResponse>({
-    method: "GET",
-    url: "/api/conversations",
-  })
-    .then((response) => {
-      conversations = response.conversations;
-      loadingError = null;
-    })
-    .catch((error: Error) => {
-      loadingError = error.message;
+async function fetchConversations(): Promise<void> {
+  try {
+    const response = await m.request<ConversationListResponse>({
+      method: "GET",
+      url: "/api/conversations",
     });
+    conversations = response.conversations;
+    loadingError = null;
+  } catch (error) {
+    loadingError = (error as Error).message;
+  }
 }
 
 function selectConversation(conversationId: string): void {
