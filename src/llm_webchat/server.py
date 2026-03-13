@@ -42,6 +42,7 @@ async def _lifespan(application: FastAPI) -> AsyncIterator[None]:
     application.state.database = open_database()
     application.state.conversation_event_queues = ConversationEventQueues()
     yield
+    application.state.conversation_event_queues.shutdown()
 
 
 def _index() -> Response:
@@ -136,15 +137,20 @@ def _stream_events(conversation_id: str, request: Request) -> StreamingResponse:
     event_queue = conversation_event_queues.register(conversation_id)
 
     def event_generator() -> Iterator[str]:
+        keepalive_counter = 0
         try:
-            while True:
+            while not conversation_event_queues.is_shutdown:
                 try:
-                    event = event_queue.get(timeout=30)
+                    event = event_queue.get(timeout=1)
+                    keepalive_counter = 0
                     if event is None:
                         break
                     yield f"data: {json.dumps(event)}\n\n"
                 except queue.Empty:
-                    yield ": keepalive\n\n"
+                    keepalive_counter += 1
+                    if keepalive_counter >= 30:
+                        keepalive_counter = 0
+                        yield ": keepalive\n\n"
         except GeneratorExit:
             pass
         finally:
