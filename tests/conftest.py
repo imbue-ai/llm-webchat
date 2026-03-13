@@ -1,3 +1,4 @@
+import sqlite3
 from collections.abc import Iterator
 from pathlib import Path
 
@@ -18,7 +19,9 @@ def llm_user_path(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> Path:
 @pytest.fixture()
 def test_database(llm_user_path: Path) -> sqlite_utils.Database:
     database_path = llm_user_path / "logs.db"
-    return sqlite_utils.Database(str(database_path))
+    connection = sqlite3.connect(str(database_path))
+    connection.row_factory = sqlite3.Row
+    return sqlite_utils.Database(connection)
 
 
 @pytest.fixture()

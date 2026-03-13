@@ -12,7 +12,9 @@ from llm_webchat.models import ResponseItem
 
 def open_database() -> sqlite_utils.Database:
     path = logs_db_path()
-    database = sqlite_utils.Database(sqlite3.connect(str(path), check_same_thread=False))
+    connection = sqlite3.connect(str(path), check_same_thread=False)
+    connection.row_factory = sqlite3.Row
+    database = sqlite_utils.Database(connection)
     migrate(database)
     return database
 
@@ -42,9 +44,9 @@ def list_conversations(
 
     return [
         Conversation(
-            id=row[0],
-            name=row[1] or "",
-            model=row[2] or "",
+            id=row["id"],
+            name=row["name"] or "",
+            model=row["model"] or "",
         )
         for row in rows
     ]
@@ -63,16 +65,16 @@ def list_responses(database: sqlite_utils.Database, conversation_id: str) -> lis
 
     return [
         ResponseItem(
-            id=row[0],
-            model=row[1] or "",
-            prompt=row[2],
-            system=row[3],
-            response=row[4] or "",
-            conversation_id=row[5],
-            datetime_utc=row[6] or "",
-            duration_ms=row[7],
-            input_tokens=row[8],
-            output_tokens=row[9],
+            id=row["id"],
+            model=row["model"] or "",
+            prompt=row["prompt"],
+            system=row["system"],
+            response=row["response"] or "",
+            conversation_id=row["conversation_id"],
+            datetime_utc=row["datetime_utc"] or "",
+            duration_ms=row["duration_ms"],
+            input_tokens=row["input_tokens"],
+            output_tokens=row["output_tokens"],
         )
         for row in rows
     ]
