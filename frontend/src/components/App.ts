@@ -1,4 +1,5 @@
 import m from "mithril";
+import { ConversationSelector } from "./ConversationSelector";
 
 export const App: m.Component = {
   view() {
@@ -6,10 +7,7 @@ export const App: m.Component = {
       m(
         "aside",
         { class: "app-sidebar w-64 border-r border-border bg-surface-secondary p-4", "data-slot": "sidebar" },
-        [
-          m("h2", { class: "text-lg font-semibold text-text-primary" }, "Conversations"),
-          m("p", { class: "mt-2 text-sm text-text-secondary" }, "No conversations yet."),
-        ],
+        [m(ConversationSelector)],
       ),
       m("div", { class: "app-main flex flex-1 flex-col" }, [
         m("header", { class: "app-header border-b border-border px-6 py-3", "data-slot": "header" }, [

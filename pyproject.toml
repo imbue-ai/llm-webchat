@@ -11,6 +11,8 @@ dependencies = [
     "starlette>=0.45",
     "uvicorn>=0.34",
     "pluggy>=1.5",
+    "pydantic-settings>=2.13.1",
+    "sqlite-utils>=3.39",
 ]
 
 [project.entry-points.llm]

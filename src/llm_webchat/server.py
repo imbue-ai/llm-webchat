@@ -1,12 +1,18 @@
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI
+from fastapi import Request
 from fastapi.responses import FileResponse
 from fastapi.responses import HTMLResponse
 from fastapi.responses import JSONResponse
 from fastapi.responses import Response
 from fastapi.staticfiles import StaticFiles
 
+from llm_webchat.database import list_conversations
+from llm_webchat.database import open_database
+from llm_webchat.models import ConversationListResponse
 from llm_webchat.plugins import get_plugin_manager
 
 STATIC_DIRECTORY = Path(__file__).parent / "static"
@@ -16,6 +22,12 @@ _FRONTEND_NOT_BUILT_HTML = (
 )
 
 
+@asynccontextmanager
+async def _lifespan(application: FastAPI) -> AsyncIterator[None]:
+    application.state.database = open_database()
+    yield
+
+
 def _index() -> Response:
     index_path = STATIC_DIRECTORY / "index.html"
     if index_path.exists():
@@ -23,8 +35,11 @@ def _index() -> Response:
     return HTMLResponse(_FRONTEND_NOT_BUILT_HTML)
 
 
-def _list_conversations(count: int = 8) -> JSONResponse:
-    return JSONResponse(content={"conversations": [], "message": "Hello, world!"})
+def _list_conversations_endpoint(request: Request, count: int = 10) -> Response:
+    database = request.app.state.database
+    conversations = list_conversations(database, count=count)
+    response = ConversationListResponse(conversations=conversations)
+    return JSONResponse(content=response.model_dump())
 
 
 def _get_conversation(conversation_id: str) -> JSONResponse:
@@ -54,10 +69,10 @@ def _stream_events(conversation_id: str) -> JSONResponse:
 
 
 def create_application() -> FastAPI:
-    application = FastAPI()
+    application = FastAPI(lifespan=_lifespan)
 
     application.add_api_route("/", _index, methods=["GET"])
-    application.add_api_route("/api/conversations", _list_conversations, methods=["GET"])
+    application.add_api_route("/api/conversations", _list_conversations_endpoint, methods=["GET"])
     application.add_api_route("/api/conversations/{conversation_id}", _get_conversation, methods=["GET"])
     application.add_api_route("/api/conversations", _create_conversation, methods=["POST"])
     application.add_api_route("/api/conversations/{conversation_id}/message", _send_message, methods=["POST"])
