@@ -1,4 +1,5 @@
 import m from "mithril";
+import { renderMarkdown } from "./renderMarkdown";
 
 interface ResponseItem {
   id: string;
@@ -145,8 +146,10 @@ function renderAssistantMessage(responseItem: ResponseItem): m.Vnode {
   return m("div", { class: "message message-assistant mb-6" }, [
     m(
       "div",
-      { class: "message-content whitespace-pre-wrap text-sm text-text-primary leading-relaxed" },
-      responseItem.response,
+      {
+        class: "message-content markdown-content text-sm text-text-primary leading-relaxed",
+      },
+      m.trust(renderMarkdown(responseItem.response)),
     ),
   ]);
 }
@@ -163,7 +166,13 @@ function renderStreamingAssistantMessage(content: string): m.Vnode {
   const hasContent = content.length > 0;
   return m("div", { class: "message message-assistant message-streaming mb-6" }, [
     hasContent
-      ? m("div", { class: "message-content whitespace-pre-wrap text-sm text-text-primary leading-relaxed" }, content)
+      ? m(
+          "div",
+          {
+            class: "message-content markdown-content text-sm text-text-primary leading-relaxed",
+          },
+          m.trust(renderMarkdown(content)),
+        )
       : renderStreamingIndicator(),
   ]);
 }
@@ -174,8 +183,10 @@ function renderErrorMessage(errorContent: string, partialAssistantContent: strin
     children.push(
       m(
         "div",
-        { class: "message-content whitespace-pre-wrap text-sm text-text-primary mb-3" },
-        partialAssistantContent,
+        {
+          class: "message-content markdown-content text-sm text-text-primary mb-3",
+        },
+        m.trust(renderMarkdown(partialAssistantContent)),
       ),
     );
   }
