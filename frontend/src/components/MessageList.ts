@@ -77,11 +77,13 @@ export function appendStreamingDelta(content: string): void {
 
 export function finalizeStreamingMessage(): void {
   if (streamingMessage !== null) {
-    streamingMessage = {
-      ...streamingMessage,
-      finalized: true,
-    };
+    streamingMessage = null;
+    refetchCurrentConversation();
   }
+}
+
+export function isStreaming(): boolean {
+  return streamingMessage !== null;
 }
 
 export function refetchCurrentConversation(): void {

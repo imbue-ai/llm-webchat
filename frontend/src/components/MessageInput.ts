@@ -1,4 +1,5 @@
 import m from "mithril";
+import { isStreaming } from "./MessageList";
 
 const MAX_TEXTAREA_HEIGHT_PX = 200;
 
@@ -12,7 +13,7 @@ function autoResizeTextarea(textarea: HTMLTextAreaElement): void {
 }
 
 export async function sendMessage(conversationId: string, message: string): Promise<void> {
-  if (!message.trim() || sending) {
+  if (!message.trim() || sending || isStreaming()) {
     return;
   }
   sending = true;
@@ -57,7 +58,7 @@ export const MessageInput: m.Component<{ conversationId: string | null }> = {
         placeholder: "Type a message…",
         rows: 1,
         value: messageText,
-        disabled: sending,
+        disabled: sending || isStreaming(),
         oncreate: (textareaVnode: m.VnodeDOM) => {
           autoResizeTextarea(textareaVnode.dom as HTMLTextAreaElement);
         },
@@ -76,9 +77,11 @@ export const MessageInput: m.Component<{ conversationId: string | null }> = {
         {
           class: [
             "message-input-send-button rounded-lg px-5 py-3 text-sm font-medium text-white transition-colors",
-            sending ? "bg-primary/50 cursor-not-allowed" : "bg-primary hover:bg-primary-hover cursor-pointer",
+            sending || isStreaming()
+              ? "bg-primary/50 cursor-not-allowed"
+              : "bg-primary hover:bg-primary-hover cursor-pointer",
           ].join(" "),
-          disabled: sending || !messageText.trim(),
+          disabled: sending || isStreaming() || !messageText.trim(),
           onclick: () => {
             if (conversationId) {
               sendMessage(conversationId, messageText);
