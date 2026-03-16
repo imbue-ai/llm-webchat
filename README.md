@@ -81,6 +81,8 @@ The following environment variables are recognized:
 - `LLM_CONVERSATION_IDS`: a comma-separated list. If provided, only these conversations are ever returned.
 - `LLM_WEBCHAT_JAVASCRIPT_PLUGINS`: a comma separated list of .js files containing frontend plugins (see below).
 - `LLM_WEBCHAT_STATIC_PATHS`: a comma separated list of additional paths to resources that should be served from under `/static`. Files and directories are both accepted.
+- `LLM_WEBCHAT_HOST`: the host address the server binds to. Defaults to `127.0.0.1`.
+- `LLM_WEBCHAT_PORT`: the port the server listens on. Defaults to `8000`.
 
 The web server can be extended using [pluggy](https://github.com/pytest-dev/pluggy) by providing an implementation of the `llm_webchat.hookspecs.endpoint` hookspec to add more endpoints (including static file routes).
 

@@ -3,6 +3,7 @@ from __future__ import annotations
 import click
 import llm
 
+from llm_webchat.config import load_config
 from llm_webchat.server import create_application
 
 
@@ -13,5 +14,6 @@ def register_commands(cli: click.Group) -> None:
         """Open a web chat interface for conversations with LLMs."""
         import uvicorn
 
+        config = load_config()
         application = create_application()
-        uvicorn.run(application, host="127.0.0.1", port=8000)
+        uvicorn.run(application, host=config.llm_webchat_host, port=config.llm_webchat_port)
