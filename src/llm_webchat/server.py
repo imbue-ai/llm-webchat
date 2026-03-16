@@ -1,3 +1,4 @@
+import codecs
 import json
 import logging
 import queue
@@ -103,12 +104,17 @@ def _run_llm_subprocess(
         )
 
         assert process.stdout is not None
+        decoder = codecs.getincrementaldecoder("utf-8")(errors="replace")
         while True:
             chunk = process.stdout.read(16)
             if not chunk:
+                text = decoder.decode(b"", final=True)
+                if text:
+                    conversation_event_queues.broadcast(conversation_id, {"type": "message_delta", "content": text})
                 break
-            text = chunk.decode("utf-8", errors="replace")
-            conversation_event_queues.broadcast(conversation_id, {"type": "message_delta", "content": text})
+            text = decoder.decode(chunk)
+            if text:
+                conversation_event_queues.broadcast(conversation_id, {"type": "message_delta", "content": text})
 
         process.wait()
 
