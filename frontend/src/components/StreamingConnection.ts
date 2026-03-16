@@ -1,5 +1,10 @@
 import m from "mithril";
-import { appendStreamingDelta, finalizeStreamingMessage, startStreamingMessage } from "./MessageList";
+import {
+  appendStreamingDelta,
+  finalizeStreamingMessage,
+  markStreamingError,
+  startStreamingMessage,
+} from "./MessageList";
 
 let activeEventSource: EventSource | null = null;
 let activeConversationId: string | null = null;
@@ -83,8 +88,7 @@ function handleStreamEvent(event: StreamEvent): void {
       finalizeStreamingMessage();
       break;
     case "error":
-      appendStreamingDelta(`\n[Error: ${event.content}]`);
-      finalizeStreamingMessage();
+      markStreamingError(event.content);
       break;
   }
   m.redraw();

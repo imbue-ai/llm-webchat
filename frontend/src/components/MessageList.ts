@@ -21,6 +21,7 @@ interface StreamingMessage {
   userPrompt: string;
   assistantContent: string;
   finalized: boolean;
+  error: string | null;
 }
 
 let responses: ResponseItem[] = [];
@@ -63,6 +64,7 @@ export function startStreamingMessage(userPrompt: string): void {
     userPrompt,
     assistantContent: "",
     finalized: false,
+    error: null,
   };
 }
 
@@ -76,14 +78,28 @@ export function appendStreamingDelta(content: string): void {
 }
 
 export function finalizeStreamingMessage(): void {
-  if (streamingMessage !== null) {
+  if (streamingMessage !== null && streamingMessage.error === null) {
     streamingMessage = null;
     refetchCurrentConversation();
   }
 }
 
+export function markStreamingError(errorContent: string): void {
+  if (streamingMessage !== null) {
+    streamingMessage = {
+      ...streamingMessage,
+      finalized: true,
+      error: errorContent,
+    };
+  }
+}
+
+export function clearStreamingMessage(): void {
+  streamingMessage = null;
+}
+
 export function isStreaming(): boolean {
-  return streamingMessage !== null;
+  return streamingMessage !== null && !streamingMessage.finalized;
 }
 
 export function refetchCurrentConversation(): void {
@@ -129,6 +145,30 @@ function renderStreamingAssistantMessage(content: string): m.Vnode {
       ],
     ),
   ]);
+}
+
+function renderErrorMessage(errorContent: string, partialAssistantContent: string): m.Vnode {
+  const children: m.Children[] = [];
+  if (partialAssistantContent) {
+    children.push(
+      m(
+        "div",
+        { class: "message-content whitespace-pre-wrap text-sm text-text-primary mb-3" },
+        partialAssistantContent,
+      ),
+    );
+  }
+  children.push(
+    m(
+      "div",
+      {
+        class:
+          "message-error-banner flex items-center gap-2 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700 dark:bg-red-950 dark:border-red-800 dark:text-red-300",
+      },
+      [m("span", { class: "message-error-icon" }, "⚠"), m("span", errorContent)],
+    ),
+  );
+  return m("div", { class: "message message-error mb-6" }, children);
 }
 
 export const MessageList: m.Component<{ conversationId: string | null }> = {
@@ -177,7 +217,11 @@ export const MessageList: m.Component<{ conversationId: string | null }> = {
 
     if (streamingMessage !== null) {
       messageNodes.push(renderUserMessage(streamingMessage.userPrompt));
-      messageNodes.push(renderStreamingAssistantMessage(streamingMessage.assistantContent));
+      if (streamingMessage.error !== null) {
+        messageNodes.push(renderErrorMessage(streamingMessage.error, streamingMessage.assistantContent));
+      } else {
+        messageNodes.push(renderStreamingAssistantMessage(streamingMessage.assistantContent));
+      }
     }
 
     return m(

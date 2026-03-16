@@ -93,10 +93,10 @@ def _create_conversation() -> JSONResponse:
 def _run_llm_subprocess(
     conversation_event_queues: ConversationEventQueues, conversation_id: str, message: str
 ) -> None:
-    conversation_event_queues.broadcast(conversation_id, {"type": "user_message", "content": message})
-    conversation_event_queues.broadcast(conversation_id, {"type": "message_start"})
-
     try:
+        conversation_event_queues.broadcast(conversation_id, {"type": "user_message", "content": message})
+        conversation_event_queues.broadcast(conversation_id, {"type": "message_start"})
+
         process = subprocess.Popen(
             ["llm", "--cid", conversation_id, message],
             stdout=subprocess.PIPE,

@@ -1,5 +1,5 @@
 import m from "mithril";
-import { isStreaming } from "./MessageList";
+import { clearStreamingMessage, isStreaming } from "./MessageList";
 
 const MAX_TEXTAREA_HEIGHT_PX = 200;
 
@@ -17,6 +17,7 @@ export async function sendMessage(conversationId: string, message: string): Prom
     return;
   }
   sending = true;
+  clearStreamingMessage();
   m.redraw();
 
   try {
