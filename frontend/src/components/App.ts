@@ -16,6 +16,7 @@ const SCROLL_BOTTOM_THRESHOLD_PX = 40;
 
 let previousConversationId: string | null = null;
 let userScrolledUp = false;
+let modelSyncedForConversation: string | null = null;
 
 function isNearBottom(element: HTMLElement): boolean {
   return element.scrollHeight - element.scrollTop - element.clientHeight < SCROLL_BOTTOM_THRESHOLD_PX;
@@ -50,13 +51,15 @@ export const App: m.Component = {
     if (conversationChanged && previousConversationId !== null) {
       refetchCurrentConversation();
       userScrolledUp = false;
+      modelSyncedForConversation = null;
     }
     previousConversationId = selectedConversationId;
 
-    if (conversationChanged && selectedConversationId) {
+    if (selectedConversationId && modelSyncedForConversation !== selectedConversationId) {
       const lastModel = getLastResponseModel();
       if (lastModel) {
         setSelectedModelId(lastModel);
+        modelSyncedForConversation = selectedConversationId;
       }
     }
 
