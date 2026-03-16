@@ -54,6 +54,7 @@ class CreateConversationResponse(BaseModel, frozen=True):
 class SendMessageRequest(BaseModel, frozen=True):
     message: str
     model: str
+    system_prompt: str | None = None
 
 
 class SendMessageResponse(BaseModel, frozen=True):

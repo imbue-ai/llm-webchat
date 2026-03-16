@@ -11,6 +11,8 @@ interface CreateConversationResponse {
 }
 
 let messageText = "";
+let systemPromptText = "";
+let systemPromptExpanded = false;
 let creating = false;
 
 function conversationName(text: string): string {
@@ -43,7 +45,10 @@ async function createConversationAndSend(): Promise<void> {
       body: { name: conversationName(trimmedMessage), model: modelId },
     });
     const conversationId = response.id;
+    const trimmedSystemPrompt = systemPromptText.trim();
     messageText = "";
+    systemPromptText = "";
+    systemPromptExpanded = false;
 
     await fetchConversations();
 
@@ -64,11 +69,15 @@ async function createConversationAndSend(): Promise<void> {
     // POST the message directly instead of going through sendMessage(),
     // which would call clearStreamingMessage() and interfere with the
     // streaming state we just set up.
+    const messageBody: Record<string, string> = { message: trimmedMessage, model: modelId };
+    if (trimmedSystemPrompt) {
+      messageBody.system_prompt = trimmedSystemPrompt;
+    }
     await m.request({
       method: "POST",
       url: "/api/conversations/:conversationId/message",
       params: { conversationId },
-      body: { message: trimmedMessage, model: modelId },
+      body: messageBody,
     });
   } finally {
     creating = false;
@@ -92,7 +101,7 @@ export const NewConversation: m.Component = {
           { class: "new-conversation-title text-2xl font-semibold text-text-primary text-center" },
           "Start a new conversation",
         ),
-        m("div", { class: "new-conversation-input flex items-end gap-3" }, [
+        m("div", { class: "new-conversation-input flex items-center gap-3" }, [
           m(
             "div",
             {
@@ -135,6 +144,50 @@ export const NewConversation: m.Component = {
               onclick: createConversationAndSend,
             },
             creating ? "Creating…" : "Send",
+          ),
+        ]),
+        m("div", { class: "system-prompt-row flex gap-3 -mt-2" }, [
+          m("div", { class: "system-prompt-section flex-1 flex flex-col gap-1" }, [
+            m(
+              "button",
+              {
+                class:
+                  "system-prompt-toggle text-xs text-text-secondary hover:text-text-primary transition-colors cursor-pointer bg-transparent border-none p-0 self-start",
+                onclick: () => {
+                  systemPromptExpanded = !systemPromptExpanded;
+                },
+              },
+              [m("span", systemPromptExpanded ? "▾ " : "▸ "), "System prompt"],
+            ),
+            systemPromptExpanded
+              ? m("textarea", {
+                  class:
+                    "system-prompt-textbox w-full resize-none rounded-lg border border-border bg-surface px-4 pt-3 pb-2 text-sm text-text-primary placeholder:text-text-secondary focus:outline-none focus:border-primary transition-colors",
+                  style: { overflowY: "hidden" },
+                  placeholder: "Enter a system prompt (optional)…",
+                  rows: 2,
+                  value: systemPromptText,
+                  disabled: creating,
+                  oncreate: (textareaVnode: m.VnodeDOM) => {
+                    autoResizeTextarea(textareaVnode.dom as HTMLTextAreaElement);
+                  },
+                  onupdate: (textareaVnode: m.VnodeDOM) => {
+                    autoResizeTextarea(textareaVnode.dom as HTMLTextAreaElement);
+                  },
+                  oninput: (event: Event) => {
+                    const textarea = event.target as HTMLTextAreaElement;
+                    systemPromptText = textarea.value;
+                    autoResizeTextarea(textarea);
+                  },
+                })
+              : null,
+          ]),
+          m(
+            "div",
+            {
+              class: "new-conversation-send-button-spacer rounded-lg px-5 py-3 text-sm font-medium invisible",
+            },
+            "Send",
           ),
         ]),
       ]),

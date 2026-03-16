@@ -124,14 +124,23 @@ def _create_conversation(create_conversation_request: CreateConversationRequest,
 
 
 def _run_llm_subprocess(
-    conversation_event_queues: ConversationEventQueues, conversation_id: str, message: str, model: str
+    conversation_event_queues: ConversationEventQueues,
+    conversation_id: str,
+    message: str,
+    model: str,
+    system_prompt: str | None = None,
 ) -> None:
     try:
         conversation_event_queues.broadcast(conversation_id, {"type": "user_message", "content": message})
         conversation_event_queues.broadcast(conversation_id, {"type": "message_start"})
 
+        command = ["llm", "-m", model, "--cid", conversation_id]
+        if system_prompt:
+            command.extend(["--system", system_prompt])
+        command.append(message)
+
         process = subprocess.Popen(
-            ["llm", "-m", model, "--cid", conversation_id, message],
+            command,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
         )
@@ -192,7 +201,13 @@ def _send_message(conversation_id: str, send_message_request: SendMessageRequest
 
     thread = threading.Thread(
         target=_run_llm_subprocess,
-        args=(conversation_event_queues, conversation_id, send_message_request.message, send_message_request.model),
+        args=(
+            conversation_event_queues,
+            conversation_id,
+            send_message_request.message,
+            send_message_request.model,
+            send_message_request.system_prompt,
+        ),
         daemon=True,
     )
     thread.start()

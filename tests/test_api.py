@@ -296,6 +296,48 @@ def test_run_llm_subprocess_calls_llm_with_correct_arguments() -> None:
     )
 
 
+def test_run_llm_subprocess_calls_llm_with_system_prompt() -> None:
+    from llm_webchat.event_queues import ConversationEventQueues
+    from llm_webchat.server import _run_llm_subprocess
+
+    conversation_event_queues = ConversationEventQueues()
+    conversation_id = "test_system_conv"
+    conversation_event_queues.register(conversation_id)
+
+    mock_process = _make_fake_popen([b"response"])
+
+    with patch("llm_webchat.server.subprocess.Popen", return_value=mock_process) as mock_popen:
+        _run_llm_subprocess(
+            conversation_event_queues,
+            conversation_id,
+            "Hello",
+            "gpt-4",
+            system_prompt="You are a helpful assistant.",
+        )
+
+    mock_popen.assert_called_once_with(
+        ["llm", "-m", "gpt-4", "--cid", conversation_id, "--system", "You are a helpful assistant.", "Hello"],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+
+
+def test_send_message_with_system_prompt(client: TestClient, test_database: sqlite_utils.Database) -> None:
+    insert_conversations(test_database, [{"id": "conv1", "name": "Test", "model": "gpt-4"}])
+
+    with patch("llm_webchat.server.subprocess.Popen") as mock_popen:
+        mock_popen.return_value = _make_fake_popen([b"Hello!"])
+
+        response = client.post(
+            "/api/conversations/conv1/message",
+            json={"message": "Hi there", "model": "gpt-4", "system_prompt": "Be concise."},
+        )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "ok"
+
+
 def test_list_models(client: TestClient) -> None:
     mock_model_1 = MagicMock()
     mock_model_1.model_id = "gpt-4"

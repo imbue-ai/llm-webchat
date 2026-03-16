@@ -53,7 +53,7 @@ export const MessageInput: m.Component<{ conversationId: string | null }> = {
       }
     }
 
-    return m("div", { class: "message-input mx-auto w-full max-w-(--width-message-column) flex items-end gap-3" }, [
+    return m("div", { class: "message-input mx-auto w-full max-w-(--width-message-column) flex items-center gap-3" }, [
       m(
         "div",
         {
