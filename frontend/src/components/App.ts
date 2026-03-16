@@ -46,13 +46,14 @@ export const App: m.Component = {
       disconnectFromStream();
     }
 
-    if (previousConversationId !== selectedConversationId && previousConversationId !== null) {
+    const conversationChanged = previousConversationId !== selectedConversationId;
+    if (conversationChanged && previousConversationId !== null) {
       refetchCurrentConversation();
       userScrolledUp = false;
     }
     previousConversationId = selectedConversationId;
 
-    if (selectedConversationId) {
+    if (conversationChanged && selectedConversationId) {
       const lastModel = getLastResponseModel();
       if (lastModel) {
         setSelectedModelId(lastModel);
