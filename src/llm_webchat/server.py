@@ -138,16 +138,23 @@ def _run_llm_subprocess(
 
         assert process.stdout is not None
         decoder = codecs.getincrementaldecoder("utf-8")(errors="replace")
+        stdout_read_size = 1
+        stream_chunk_size = 8
+        text_buffer = ""
         while True:
-            chunk = process.stdout.read(16)
-            if not chunk:
-                text = decoder.decode(b"", final=True)
-                if text:
-                    conversation_event_queues.broadcast(conversation_id, {"type": "message_delta", "content": text})
+            raw_chunk = process.stdout.read(stdout_read_size)
+            if not raw_chunk:
+                text_buffer += decoder.decode(b"", final=True)
+                if text_buffer:
+                    conversation_event_queues.broadcast(
+                        conversation_id, {"type": "message_delta", "content": text_buffer}
+                    )
                 break
-            text = decoder.decode(chunk)
-            if text:
-                conversation_event_queues.broadcast(conversation_id, {"type": "message_delta", "content": text})
+            text_buffer += decoder.decode(raw_chunk)
+            while len(text_buffer) >= stream_chunk_size:
+                emit = text_buffer[:stream_chunk_size]
+                text_buffer = text_buffer[stream_chunk_size:]
+                conversation_event_queues.broadcast(conversation_id, {"type": "message_delta", "content": emit})
 
         process.wait()
 
