@@ -52,6 +52,9 @@ async def _lifespan(application: FastAPI) -> AsyncIterator[None]:
     conversation_event_queues = ConversationEventQueues()
     application.state.conversation_event_queues = conversation_event_queues
 
+    plugin_manager = get_plugin_manager()
+    plugin_manager.hook.register_event_broadcaster(broadcaster=conversation_event_queues.broadcast)
+
     is_main_thread = threading.current_thread() is threading.main_thread()
     original_sigint_handler = None
 

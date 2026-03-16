@@ -84,7 +84,10 @@ The following environment variables are recognized:
 - `LLM_WEBCHAT_HOST`: the host address the server binds to. Defaults to `127.0.0.1`.
 - `LLM_WEBCHAT_PORT`: the port the server listens on. Defaults to `8000`.
 
-The web server can be extended using [pluggy](https://github.com/pytest-dev/pluggy) by providing an implementation of the `llm_webchat.hookspecs.endpoint` hookspec to add more endpoints (including static file routes).
+The web server can be extended using [pluggy](https://github.com/pytest-dev/pluggy) by providing implementations of the following hookspecs (defined in `llm_webchat.hookspecs`):
+
+- `endpoint(app)` — Register additional endpoints (including static file routes) on the FastAPI application.
+- `register_event_broadcaster(broadcaster)` — Receive a reference to the event broadcaster callable. The broadcaster has the signature `(conversation_id: str, event: dict[str, str]) -> None` and can be stored and called at any time to inject custom events into the SSE stream for a given conversation.
 
 
 ### Frontend
