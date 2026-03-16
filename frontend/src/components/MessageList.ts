@@ -27,6 +27,7 @@ interface StreamingMessage {
 let responses: ResponseItem[] = [];
 let loading = false;
 let loadingError: string | null = null;
+let conversationNotFound = false;
 let currentConversationId: string | null = null;
 let streamingMessage: StreamingMessage | null = null;
 
@@ -37,6 +38,7 @@ export async function fetchResponses(conversationId: string): Promise<void> {
   currentConversationId = conversationId;
   loading = true;
   loadingError = null;
+  conversationNotFound = false;
   responses = [];
   streamingMessage = null;
 
@@ -54,7 +56,12 @@ export async function fetchResponses(conversationId: string): Promise<void> {
   } catch (error) {
     if (conversationId === currentConversationId) {
       loading = false;
-      loadingError = (error as Error).message;
+      const requestError = error as { code?: number; message?: string };
+      if (requestError.code === 404) {
+        conversationNotFound = true;
+      } else {
+        loadingError = requestError.message ?? String(error);
+      }
     }
   }
 }
@@ -100,6 +107,10 @@ export function clearStreamingMessage(): void {
 
 export function isStreaming(): boolean {
   return streamingMessage !== null && !streamingMessage.finalized;
+}
+
+export function isConversationNotFound(): boolean {
+  return conversationNotFound;
 }
 
 export function refetchCurrentConversation(): void {
@@ -181,6 +192,13 @@ export const MessageList: m.Component<{ conversationId: string | null }> = {
         { class: "message-list-empty flex items-center justify-center h-full" },
         m("p", { class: "text-text-secondary" }, "Select or start a conversation."),
       );
+    }
+
+    if (conversationNotFound) {
+      return m("div", { class: "message-list-not-found flex flex-col items-center justify-center h-full gap-2" }, [
+        m("p", { class: "text-2xl font-semibold text-text-primary" }, "404"),
+        m("p", { class: "text-text-secondary" }, "Conversation not found."),
+      ]);
     }
 
     if (loading) {

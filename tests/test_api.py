@@ -73,6 +73,14 @@ def test_list_responses(client: TestClient, test_database: sqlite_utils.Database
     assert data["responses"][0]["conversation_id"] == "conv1"
 
 
+def test_list_responses_nonexistent_conversation(client: TestClient, test_database: sqlite_utils.Database) -> None:
+    response = client.get("/api/conversations/nonexistent/responses")
+    assert response.status_code == 404
+    data = response.json()
+    assert "detail" in data
+    assert "nonexistent" in data["detail"]
+
+
 def test_list_responses_empty_conversation(client: TestClient, test_database: sqlite_utils.Database) -> None:
     insert_conversations(test_database, [{"id": "conv1", "name": "Test", "model": "gpt-4"}])
 
@@ -161,7 +169,28 @@ def test_create_conversation_returns_unique_ids(client: TestClient) -> None:
     assert response_one.json()["id"] != response_two.json()["id"]
 
 
-def test_send_message_returns_ok(client: TestClient) -> None:
+def test_send_message_nonexistent_conversation(client: TestClient, test_database: sqlite_utils.Database) -> None:
+    response = client.post(
+        "/api/conversations/nonexistent/message",
+        json={"message": "Hello"},
+    )
+    assert response.status_code == 404
+    data = response.json()
+    assert "detail" in data
+    assert "nonexistent" in data["detail"]
+
+
+def test_stream_events_nonexistent_conversation(client: TestClient, test_database: sqlite_utils.Database) -> None:
+    response = client.get("/api/conversations/nonexistent/stream")
+    assert response.status_code == 404
+    data = response.json()
+    assert "detail" in data
+    assert "nonexistent" in data["detail"]
+
+
+def test_send_message_returns_ok(client: TestClient, test_database: sqlite_utils.Database) -> None:
+    insert_conversations(test_database, [{"id": "conv1", "name": "Test", "model": "gpt-4"}])
+
     with patch("llm_webchat.server.subprocess.Popen") as mock_popen:
         mock_popen.return_value = _make_fake_popen([b"Hello!"])
 

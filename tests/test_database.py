@@ -1,6 +1,7 @@
 import pytest
 import sqlite_utils
 
+from llm_webchat.database import conversation_exists
 from llm_webchat.database import list_conversations
 from llm_webchat.database import list_responses
 from llm_webchat.models import Conversation
@@ -77,6 +78,20 @@ def test_list_conversations_with_allowed_ids(
     result = list_conversations(test_database)
     assert len(result) == 2
     assert {c.id for c in result} == {"abc", "ghi"}
+
+
+def test_conversation_exists_returns_false_for_empty_database(test_database: sqlite_utils.Database) -> None:
+    assert conversation_exists(test_database, "nonexistent") is False
+
+
+def test_conversation_exists_returns_false_for_missing_conversation(test_database: sqlite_utils.Database) -> None:
+    insert_conversations(test_database, [{"id": "abc", "name": "Test", "model": "gpt-4"}])
+    assert conversation_exists(test_database, "nonexistent") is False
+
+
+def test_conversation_exists_returns_true_for_existing_conversation(test_database: sqlite_utils.Database) -> None:
+    insert_conversations(test_database, [{"id": "abc", "name": "Test", "model": "gpt-4"}])
+    assert conversation_exists(test_database, "abc") is True
 
 
 def test_list_responses_empty_database(test_database: sqlite_utils.Database) -> None:

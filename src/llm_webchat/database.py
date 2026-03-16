@@ -66,6 +66,16 @@ def create_conversation(database: sqlite_utils.Database, name: str) -> Conversat
     return Conversation(id=conversation_id, name=name, model=DEFAULT_MODEL)
 
 
+def conversation_exists(database: sqlite_utils.Database, conversation_id: str) -> bool:
+    if "conversations" not in database.table_names():
+        return False
+    row = database.execute(
+        "SELECT 1 FROM conversations WHERE id = ? LIMIT 1",
+        [conversation_id],
+    ).fetchone()
+    return row is not None
+
+
 def list_responses(database: sqlite_utils.Database, conversation_id: str) -> list[ResponseItem]:
     if "responses" not in database.table_names():
         return []

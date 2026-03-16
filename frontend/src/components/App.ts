@@ -1,6 +1,6 @@
 import m from "mithril";
 import { ConversationSelector, getSelectedConversationId } from "./ConversationSelector";
-import { MessageList, fetchResponses, refetchCurrentConversation } from "./MessageList";
+import { MessageList, fetchResponses, isConversationNotFound, refetchCurrentConversation } from "./MessageList";
 import { MessageInput } from "./MessageInput";
 import { NewConversation } from "./NewConversation";
 import { connectToStream, disconnectFromStream } from "./StreamingConnection";
@@ -30,7 +30,11 @@ export const App: m.Component = {
 
     if (selectedConversationId) {
       fetchResponses(selectedConversationId);
-      connectToStream(selectedConversationId);
+      if (!isConversationNotFound()) {
+        connectToStream(selectedConversationId);
+      } else {
+        disconnectFromStream();
+      }
     } else if (previousConversationId !== null) {
       disconnectFromStream();
     }
@@ -79,7 +83,7 @@ export const App: m.Component = {
           m("h1", { class: "text-xl font-bold text-text-primary" }, "llm webchat"),
         ]),
         mainContent,
-        isNewConversationRoute
+        isNewConversationRoute || isConversationNotFound()
           ? null
           : m(
               "footer",

@@ -48,3 +48,7 @@ class SendMessageRequest(BaseModel, frozen=True):
 
 class SendMessageResponse(BaseModel, frozen=True):
     status: str
+
+
+class ErrorResponse(BaseModel, frozen=True):
+    detail: str

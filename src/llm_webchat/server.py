@@ -20,6 +20,7 @@ from fastapi.responses import Response
 from fastapi.responses import StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
+from llm_webchat.database import conversation_exists
 from llm_webchat.database import create_conversation
 from llm_webchat.database import list_conversations
 from llm_webchat.database import list_responses
@@ -28,6 +29,7 @@ from llm_webchat.event_queues import ConversationEventQueues
 from llm_webchat.models import ConversationListResponse
 from llm_webchat.models import CreateConversationRequest
 from llm_webchat.models import CreateConversationResponse
+from llm_webchat.models import ErrorResponse
 from llm_webchat.models import ResponseListResponse
 from llm_webchat.models import SendMessageRequest
 from llm_webchat.models import SendMessageResponse
@@ -82,8 +84,15 @@ def _list_conversations_endpoint(request: Request, count: int = 10) -> Response:
     return JSONResponse(content=response.model_dump())
 
 
+def _conversation_not_found_response(conversation_id: str) -> JSONResponse:
+    error = ErrorResponse(detail=f"Conversation '{conversation_id}' not found")
+    return JSONResponse(content=error.model_dump(), status_code=404)
+
+
 def _list_responses_endpoint(request: Request, conversation_id: str) -> Response:
     database = request.app.state.database
+    if not conversation_exists(database, conversation_id):
+        return _conversation_not_found_response(conversation_id)
     responses = list_responses(database, conversation_id)
     response = ResponseListResponse(responses=responses)
     return JSONResponse(content=response.model_dump())
@@ -150,6 +159,10 @@ def _run_llm_subprocess(
 
 
 def _send_message(conversation_id: str, send_message_request: SendMessageRequest, request: Request) -> JSONResponse:
+    database = request.app.state.database
+    if not conversation_exists(database, conversation_id):
+        return _conversation_not_found_response(conversation_id)
+
     conversation_event_queues: ConversationEventQueues = request.app.state.conversation_event_queues
 
     thread = threading.Thread(
@@ -163,7 +176,11 @@ def _send_message(conversation_id: str, send_message_request: SendMessageRequest
     return JSONResponse(content=response.model_dump())
 
 
-def _stream_events(conversation_id: str, request: Request) -> StreamingResponse:
+def _stream_events(conversation_id: str, request: Request) -> Response:
+    database = request.app.state.database
+    if not conversation_exists(database, conversation_id):
+        return _conversation_not_found_response(conversation_id)
+
     conversation_event_queues: ConversationEventQueues = request.app.state.conversation_event_queues
     event_queue = conversation_event_queues.register(conversation_id)
 
