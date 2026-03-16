@@ -31,11 +31,12 @@ export async function fetchConversations(): Promise<void> {
     conversations = response.conversations;
     loadingError = null;
     conversationsLoaded = true;
-    const currentRoute = m.route.get();
-    if (currentRoute === "/" && conversations.length > 0) {
-      selectConversation(conversations[0].id);
-    } else if (currentRoute === "/" && conversations.length === 0) {
-      m.route.set("/new");
+    if (!getSelectedConversationId() && m.route.get() !== "/new") {
+      if (conversations.length > 0) {
+        selectConversation(conversations[0].id);
+      } else {
+        m.route.set("/new");
+      }
     }
   } catch (error) {
     loadingError = (error as Error).message;
