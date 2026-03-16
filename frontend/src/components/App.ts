@@ -2,6 +2,7 @@ import m from "mithril";
 import { ConversationSelector, getSelectedConversationId } from "./ConversationSelector";
 import { MessageList, fetchResponses, refetchCurrentConversation } from "./MessageList";
 import { MessageInput } from "./MessageInput";
+import { NewConversation } from "./NewConversation";
 import { connectToStream, disconnectFromStream } from "./StreamingConnection";
 
 const SCROLL_BOTTOM_THRESHOLD_PX = 40;
@@ -25,6 +26,7 @@ function handleScrollEvent(event: Event): void {
 export const App: m.Component = {
   view() {
     const selectedConversationId = getSelectedConversationId();
+    const isNewConversationRoute = m.route.get() === "/new";
 
     if (selectedConversationId) {
       fetchResponses(selectedConversationId);
@@ -39,17 +41,16 @@ export const App: m.Component = {
     }
     previousConversationId = selectedConversationId;
 
-    return m("div", { class: "app-layout flex h-screen" }, [
-      m(
-        "aside",
-        { class: "app-sidebar w-64 border-r border-border bg-surface-secondary p-4", "data-slot": "sidebar" },
-        [m(ConversationSelector)],
-      ),
-      m("div", { class: "app-main flex flex-1 flex-col" }, [
-        m("header", { class: "app-header border-b border-border px-6 py-3", "data-slot": "header" }, [
-          m("h1", { class: "text-xl font-bold text-text-primary" }, "llm webchat"),
-        ]),
-        m(
+    const mainContent = isNewConversationRoute
+      ? m(
+          "main",
+          {
+            class: "app-content flex-1 overflow-y-auto p-6",
+            "data-slot": "content",
+          },
+          [m(NewConversation)],
+        )
+      : m(
           "main",
           {
             class: "app-content flex-1 overflow-y-auto p-6",
@@ -65,12 +66,26 @@ export const App: m.Component = {
             },
           },
           [m(MessageList, { conversationId: selectedConversationId })],
-        ),
-        m(
-          "footer",
-          { class: "app-footer border-t border-border px-6 py-3", "data-slot": "footer" },
-          m(MessageInput, { conversationId: selectedConversationId }),
-        ),
+        );
+
+    return m("div", { class: "app-layout flex h-screen" }, [
+      m(
+        "aside",
+        { class: "app-sidebar w-64 border-r border-border bg-surface-secondary p-4", "data-slot": "sidebar" },
+        [m(ConversationSelector)],
+      ),
+      m("div", { class: "app-main flex flex-1 flex-col" }, [
+        m("header", { class: "app-header border-b border-border px-6 py-3", "data-slot": "header" }, [
+          m("h1", { class: "text-xl font-bold text-text-primary" }, "llm webchat"),
+        ]),
+        mainContent,
+        isNewConversationRoute
+          ? null
+          : m(
+              "footer",
+              { class: "app-footer border-t border-border px-6 py-3", "data-slot": "footer" },
+              m(MessageInput, { conversationId: selectedConversationId }),
+            ),
       ]),
     ]);
   },

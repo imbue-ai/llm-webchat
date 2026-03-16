@@ -34,6 +34,14 @@ class ResponseListResponse(BaseModel, frozen=True):
     responses: list[ResponseItem]
 
 
+class CreateConversationRequest(BaseModel, frozen=True):
+    name: str
+
+
+class CreateConversationResponse(BaseModel, frozen=True):
+    id: str
+
+
 class SendMessageRequest(BaseModel, frozen=True):
     message: str
 

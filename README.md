@@ -64,7 +64,7 @@ Backend uses fastapi + uvicorn. It provides the following endpoints:
 - GET "/api/conversations" to list the most recent conversations
     - accepts the `?count=` parameter, by default `count=10`.
 - GET "/api/conversations/:id/responses to get all responses in a given conversation
-- POST "/api/conversations/ to create a conversation (by sending the first user message)
+- POST "/api/conversations/ to create a conversation
 - POST "/api/conversations/:id/ to send a new user message to an existing conversation.
 - GET /api/conversations/:id/stream get a stream of events in
 a given conversation. There are several kinds of events:

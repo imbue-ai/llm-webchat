@@ -6,6 +6,7 @@ const rootElement = document.getElementById("app");
 if (rootElement) {
   m.route(rootElement, "/", {
     "/": App,
+    "/new": App,
     "/conversations/:conversationId": App,
   });
 }

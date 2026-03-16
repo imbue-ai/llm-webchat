@@ -20,11 +20,14 @@ from fastapi.responses import Response
 from fastapi.responses import StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
+from llm_webchat.database import create_conversation
 from llm_webchat.database import list_conversations
 from llm_webchat.database import list_responses
 from llm_webchat.database import open_database
 from llm_webchat.event_queues import ConversationEventQueues
 from llm_webchat.models import ConversationListResponse
+from llm_webchat.models import CreateConversationRequest
+from llm_webchat.models import CreateConversationResponse
 from llm_webchat.models import ResponseListResponse
 from llm_webchat.models import SendMessageRequest
 from llm_webchat.models import SendMessageResponse
@@ -86,8 +89,11 @@ def _list_responses_endpoint(request: Request, conversation_id: str) -> Response
     return JSONResponse(content=response.model_dump())
 
 
-def _create_conversation() -> JSONResponse:
-    return JSONResponse(content={"message": "Hello, world!"}, status_code=201)
+def _create_conversation(create_conversation_request: CreateConversationRequest, request: Request) -> JSONResponse:
+    database = request.app.state.database
+    conversation = create_conversation(database, create_conversation_request.name)
+    response = CreateConversationResponse(id=conversation.id)
+    return JSONResponse(content=response.model_dump(), status_code=201)
 
 
 def _run_llm_subprocess(

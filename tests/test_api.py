@@ -4,6 +4,7 @@ from unittest.mock import MagicMock
 from unittest.mock import patch
 
 import sqlite_utils
+from fastapi import FastAPI
 from starlette.testclient import TestClient
 
 from tests.helpers import insert_conversations
@@ -126,6 +127,38 @@ def _make_fake_popen(stdout_chunks: list[bytes], returncode: int = 0, stderr: by
     mock_process.stderr = MagicMock()
     mock_process.stderr.read = MagicMock(return_value=stderr)
     return mock_process
+
+
+def test_create_conversation(client: TestClient, application: FastAPI) -> None:
+    response = client.post("/api/conversations", json={"name": "Hello there"})
+    assert response.status_code == 201
+    data = response.json()
+    assert "id" in data
+    assert isinstance(data["id"], str)
+    assert len(data["id"]) > 0
+
+    database = application.state.database
+    rows = database.execute("SELECT id, name, model FROM conversations WHERE id = ?", [data["id"]]).fetchall()
+    assert len(rows) == 1
+    assert rows[0]["id"] == data["id"]
+    assert rows[0]["name"] == "Hello there"
+    assert rows[0]["model"] == "anthropic/claude-opus-4-6"
+
+
+def test_create_conversation_stores_name_as_given(client: TestClient, application: FastAPI) -> None:
+    response = client.post("/api/conversations", json={"name": "My custom name"})
+    assert response.status_code == 201
+
+    database = application.state.database
+    data = response.json()
+    rows = database.execute("SELECT name FROM conversations WHERE id = ?", [data["id"]]).fetchall()
+    assert rows[0]["name"] == "My custom name"
+
+
+def test_create_conversation_returns_unique_ids(client: TestClient) -> None:
+    response_one = client.post("/api/conversations", json={"name": "First"})
+    response_two = client.post("/api/conversations", json={"name": "Second"})
+    assert response_one.json()["id"] != response_two.json()["id"]
 
 
 def test_send_message_returns_ok(client: TestClient) -> None:

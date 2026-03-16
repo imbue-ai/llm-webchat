@@ -12,8 +12,17 @@ interface ConversationListResponse {
 
 let conversations: Conversation[] = [];
 let loadingError: string | null = null;
+let conversationsLoaded = false;
 
-async function fetchConversations(): Promise<void> {
+export function getConversations(): Conversation[] {
+  return conversations;
+}
+
+export function getConversationsLoaded(): boolean {
+  return conversationsLoaded;
+}
+
+export async function fetchConversations(): Promise<void> {
   try {
     const response = await m.request<ConversationListResponse>({
       method: "GET",
@@ -21,16 +30,25 @@ async function fetchConversations(): Promise<void> {
     });
     conversations = response.conversations;
     loadingError = null;
-    if (!getSelectedConversationId() && conversations.length > 0) {
+    conversationsLoaded = true;
+    const currentRoute = m.route.get();
+    if (currentRoute === "/" && conversations.length > 0) {
       selectConversation(conversations[0].id);
+    } else if (currentRoute === "/" && conversations.length === 0) {
+      m.route.set("/new");
     }
   } catch (error) {
     loadingError = (error as Error).message;
+    conversationsLoaded = true;
   }
 }
 
 function selectConversation(conversationId: string): void {
   m.route.set("/conversations/:conversationId", { conversationId });
+}
+
+function navigateToNewConversation(): void {
+  m.route.set("/new");
 }
 
 export function getSelectedConversationId(): string | null {
@@ -46,6 +64,17 @@ export const ConversationSelector: m.Component = {
     const currentConversationId = getSelectedConversationId();
     return m("div", { class: "conversation-selector", "data-slot": "conversation-selector" }, [
       m("h2", { class: "conversation-selector-title text-lg font-semibold text-text-primary" }, "Conversations"),
+      m(
+        "button",
+        {
+          class: [
+            "new-conversation-button mt-3 mb-3 w-full rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors cursor-pointer",
+            "bg-primary hover:bg-primary-hover",
+          ].join(" "),
+          onclick: navigateToNewConversation,
+        },
+        "+ New Conversation",
+      ),
       loadingError
         ? m("p", { class: "conversation-selector-error mt-2 text-sm text-red-500" }, `Error: ${loadingError}`)
         : conversations.length === 0

@@ -3,6 +3,7 @@ import sqlite3
 import sqlite_utils
 from llm.cli import logs_db_path
 from llm.migrations import migrate
+from llm.utils import monotonic_ulid
 
 from llm_webchat.config import Config
 from llm_webchat.config import load_config
@@ -50,6 +51,19 @@ def list_conversations(
         )
         for row in rows
     ]
+
+
+DEFAULT_MODEL = "anthropic/claude-opus-4-6"
+
+
+def create_conversation(database: sqlite_utils.Database, name: str) -> Conversation:
+    conversation_id = str(monotonic_ulid()).lower()
+    database.execute(
+        "INSERT INTO conversations (id, name, model) VALUES (?, ?, ?)",
+        [conversation_id, name, DEFAULT_MODEL],
+    )
+    database.conn.commit()
+    return Conversation(id=conversation_id, name=name, model=DEFAULT_MODEL)
 
 
 def list_responses(database: sqlite_utils.Database, conversation_id: str) -> list[ResponseItem]:
