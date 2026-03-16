@@ -10,10 +10,17 @@ class ConversationEventQueues:
     `threading.Lock` protects the dict/list structure that maps conversation
     IDs to their list of subscriber queues; individual queue.Queue
     operations are independently thread-safe.
+
+    An in-memory event buffer is maintained for each conversation that has
+    an active LLM flow.  When a new subscriber registers while a flow is
+    in progress, all previously buffered events are replayed into the new
+    queue so the client can reconstruct the full stream.  The buffer is
+    cleared once a ``message_end`` event is broadcast.
     """
 
     def __init__(self) -> None:
         self._queues: dict[str, list[queue.Queue[dict[str, str] | None]]] = defaultdict(list)
+        self._event_buffers: dict[str, list[dict[str, str]]] = {}
         self._lock: threading.Lock = threading.Lock()
         self._shutdown: bool = False
 
@@ -27,6 +34,9 @@ class ConversationEventQueues:
             if self._shutdown:
                 event_queue.put_nowait(None)
                 return event_queue
+            buffered_events = self._event_buffers.get(conversation_id, [])
+            for event in buffered_events:
+                event_queue.put_nowait(event)
             self._queues[conversation_id].append(event_queue)
         return event_queue
 
@@ -43,6 +53,12 @@ class ConversationEventQueues:
 
     def broadcast(self, conversation_id: str, event: dict[str, str]) -> None:
         with self._lock:
+            if event.get("type") == "user_message":
+                self._event_buffers[conversation_id] = []
+            if conversation_id in self._event_buffers:
+                self._event_buffers[conversation_id].append(event)
+            if event.get("type") == "message_end":
+                self._event_buffers.pop(conversation_id, None)
             queues = list(self._queues.get(conversation_id, []))
         for event_queue in queues:
             event_queue.put_nowait(event)
@@ -54,3 +70,4 @@ class ConversationEventQueues:
                 for event_queue in conversation_queues:
                     event_queue.put_nowait(None)
             self._queues.clear()
+            self._event_buffers.clear()
