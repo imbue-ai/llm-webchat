@@ -160,13 +160,11 @@ function renderStreamingIndicator(): m.Vnode {
 }
 
 function renderStreamingAssistantMessage(content: string): m.Vnode {
+  const hasContent = content.length > 0;
   return m("div", { class: "message message-assistant message-streaming mb-6" }, [
-    m(
-      "div",
-      { class: "message-content whitespace-pre-wrap text-sm text-text-primary leading-relaxed" },
-      content || "",
-    ),
-    renderStreamingIndicator(),
+    hasContent
+      ? m("div", { class: "message-content whitespace-pre-wrap text-sm text-text-primary leading-relaxed" }, content)
+      : renderStreamingIndicator(),
   ]);
 }
 
