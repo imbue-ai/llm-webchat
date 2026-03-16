@@ -21,3 +21,28 @@ body {
   background-color: var(--color-surface);
   margin: 0;
 }
+
+@keyframes streaming-bounce {
+  0%,
+  60%,
+  100% {
+    opacity: 0.3;
+    transform: translateY(0);
+  }
+  30% {
+    opacity: 1;
+    transform: translateY(-3px);
+  }
+}
+
+.streaming-dot {
+  animation: streaming-bounce 1.2s ease-in-out infinite;
+}
+
+.streaming-dot-2 {
+  animation-delay: 0.2s;
+}
+
+.streaming-dot-3 {
+  animation-delay: 0.4s;
+}

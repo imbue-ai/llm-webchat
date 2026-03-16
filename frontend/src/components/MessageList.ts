@@ -151,18 +151,22 @@ function renderAssistantMessage(responseItem: ResponseItem): m.Vnode {
   ]);
 }
 
+function renderStreamingIndicator(): m.Vnode {
+  return m("div", { class: "streaming-indicator inline-flex items-center gap-1.5 mt-1" }, [
+    m("span", { class: "streaming-dot streaming-dot-1 w-1.5 h-1.5 rounded-full bg-text-secondary" }),
+    m("span", { class: "streaming-dot streaming-dot-2 w-1.5 h-1.5 rounded-full bg-text-secondary" }),
+    m("span", { class: "streaming-dot streaming-dot-3 w-1.5 h-1.5 rounded-full bg-text-secondary" }),
+  ]);
+}
+
 function renderStreamingAssistantMessage(content: string): m.Vnode {
-  return m("div", { class: "message message-assistant message-streaming flex justify-start mb-4" }, [
+  return m("div", { class: "message message-assistant message-streaming mb-6" }, [
     m(
       "div",
-      {
-        class: "message-assistant-bubble max-w-[70%] rounded-lg bg-surface-secondary px-4 py-3 text-text-primary",
-      },
-      [
-        m("div", { class: "message-role text-xs font-semibold text-text-secondary mb-1" }, "Assistant"),
-        m("div", { class: "message-content whitespace-pre-wrap text-sm" }, content || "…"),
-      ],
+      { class: "message-content whitespace-pre-wrap text-sm text-text-primary leading-relaxed" },
+      content || "",
     ),
+    renderStreamingIndicator(),
   ]);
 }
 
