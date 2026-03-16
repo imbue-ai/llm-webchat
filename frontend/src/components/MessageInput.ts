@@ -1,5 +1,6 @@
 import m from "mithril";
 import { clearStreamingMessage, isStreaming } from "./MessageList";
+import { ModelSelector, getSelectedModelId } from "./ModelSelector";
 
 const MAX_TEXTAREA_HEIGHT_PX = 200;
 
@@ -13,7 +14,8 @@ function autoResizeTextarea(textarea: HTMLTextAreaElement): void {
 }
 
 export async function sendMessage(conversationId: string, message: string): Promise<void> {
-  if (!message.trim() || sending || isStreaming()) {
+  const modelId = getSelectedModelId();
+  if (!message.trim() || !modelId || sending || isStreaming()) {
     return;
   }
   sending = true;
@@ -25,7 +27,7 @@ export async function sendMessage(conversationId: string, message: string): Prom
       method: "POST",
       url: "/api/conversations/:conversationId/message",
       params: { conversationId },
-      body: { message: message.trim() },
+      body: { message: message.trim(), model: modelId },
     });
     messageText = "";
   } finally {
@@ -52,27 +54,37 @@ export const MessageInput: m.Component<{ conversationId: string | null }> = {
     }
 
     return m("div", { class: "message-input mx-auto w-full max-w-(--width-message-column) flex items-end gap-3" }, [
-      m("textarea", {
-        class:
-          "message-input-textbox flex-1 resize-none rounded-lg border border-border bg-surface px-4 py-3 text-sm text-text-primary placeholder:text-text-secondary focus:border-primary focus:outline-none",
-        style: { overflowY: "hidden" },
-        placeholder: "Type a message…",
-        rows: 1,
-        value: messageText,
-        disabled: sending || isStreaming(),
-        oncreate: (textareaVnode: m.VnodeDOM) => {
-          autoResizeTextarea(textareaVnode.dom as HTMLTextAreaElement);
+      m(
+        "div",
+        {
+          class:
+            "message-input-box flex-1 flex flex-col rounded-lg border border-border bg-surface focus-within:border-primary transition-colors",
         },
-        onupdate: (textareaVnode: m.VnodeDOM) => {
-          autoResizeTextarea(textareaVnode.dom as HTMLTextAreaElement);
-        },
-        oninput: (event: Event) => {
-          const textarea = event.target as HTMLTextAreaElement;
-          messageText = textarea.value;
-          autoResizeTextarea(textarea);
-        },
-        onkeydown: handleKeydown,
-      }),
+        [
+          m("textarea", {
+            class:
+              "message-input-textbox w-full resize-none bg-transparent px-4 pt-3 pb-1 text-sm text-text-primary placeholder:text-text-secondary focus:outline-none",
+            style: { overflowY: "hidden" },
+            placeholder: "Type a message…",
+            rows: 1,
+            value: messageText,
+            disabled: sending || isStreaming(),
+            oncreate: (textareaVnode: m.VnodeDOM) => {
+              autoResizeTextarea(textareaVnode.dom as HTMLTextAreaElement);
+            },
+            onupdate: (textareaVnode: m.VnodeDOM) => {
+              autoResizeTextarea(textareaVnode.dom as HTMLTextAreaElement);
+            },
+            oninput: (event: Event) => {
+              const textarea = event.target as HTMLTextAreaElement;
+              messageText = textarea.value;
+              autoResizeTextarea(textarea);
+            },
+            onkeydown: handleKeydown,
+          }),
+          m("div", { class: "message-input-toolbar flex justify-end px-3 pb-2" }, [m(ModelSelector)]),
+        ],
+      ),
       m(
         "button",
         {

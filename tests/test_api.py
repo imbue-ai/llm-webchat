@@ -138,7 +138,7 @@ def _make_fake_popen(stdout_chunks: list[bytes], returncode: int = 0, stderr: by
 
 
 def test_create_conversation(client: TestClient, application: FastAPI) -> None:
-    response = client.post("/api/conversations", json={"name": "Hello there"})
+    response = client.post("/api/conversations", json={"name": "Hello there", "model": "gpt-4"})
     assert response.status_code == 201
     data = response.json()
     assert "id" in data
@@ -150,11 +150,11 @@ def test_create_conversation(client: TestClient, application: FastAPI) -> None:
     assert len(rows) == 1
     assert rows[0]["id"] == data["id"]
     assert rows[0]["name"] == "Hello there"
-    assert rows[0]["model"] == "anthropic/claude-opus-4-6"
+    assert rows[0]["model"] == "gpt-4"
 
 
 def test_create_conversation_stores_name_as_given(client: TestClient, application: FastAPI) -> None:
-    response = client.post("/api/conversations", json={"name": "My custom name"})
+    response = client.post("/api/conversations", json={"name": "My custom name", "model": "gpt-4"})
     assert response.status_code == 201
 
     database = application.state.database
@@ -163,16 +163,26 @@ def test_create_conversation_stores_name_as_given(client: TestClient, applicatio
     assert rows[0]["name"] == "My custom name"
 
 
+def test_create_conversation_stores_model(client: TestClient, application: FastAPI) -> None:
+    response = client.post("/api/conversations", json={"name": "Test", "model": "claude-3-opus"})
+    assert response.status_code == 201
+
+    database = application.state.database
+    data = response.json()
+    rows = database.execute("SELECT model FROM conversations WHERE id = ?", [data["id"]]).fetchall()
+    assert rows[0]["model"] == "claude-3-opus"
+
+
 def test_create_conversation_returns_unique_ids(client: TestClient) -> None:
-    response_one = client.post("/api/conversations", json={"name": "First"})
-    response_two = client.post("/api/conversations", json={"name": "Second"})
+    response_one = client.post("/api/conversations", json={"name": "First", "model": "gpt-4"})
+    response_two = client.post("/api/conversations", json={"name": "Second", "model": "gpt-4"})
     assert response_one.json()["id"] != response_two.json()["id"]
 
 
 def test_send_message_nonexistent_conversation(client: TestClient, test_database: sqlite_utils.Database) -> None:
     response = client.post(
         "/api/conversations/nonexistent/message",
-        json={"message": "Hello"},
+        json={"message": "Hello", "model": "gpt-4"},
     )
     assert response.status_code == 404
     data = response.json()
@@ -196,7 +206,7 @@ def test_send_message_returns_ok(client: TestClient, test_database: sqlite_utils
 
         response = client.post(
             "/api/conversations/conv1/message",
-            json={"message": "Hi there"},
+            json={"message": "Hi there", "model": "gpt-4"},
         )
 
     assert response.status_code == 200
@@ -224,7 +234,7 @@ def test_run_llm_subprocess_broadcasts_events() -> None:
     mock_process = _make_fake_popen([b"Hello ", b"world!"])
 
     with patch("llm_webchat.server.subprocess.Popen", return_value=mock_process):
-        _run_llm_subprocess(conversation_event_queues, conversation_id, "Hi")
+        _run_llm_subprocess(conversation_event_queues, conversation_id, "Hi", "gpt-4")
 
     events = _drain_queue(queue)
 
@@ -253,7 +263,7 @@ def test_run_llm_subprocess_broadcasts_error_on_failure() -> None:
     mock_process = _make_fake_popen([], returncode=1, stderr=b"Something went wrong")
 
     with patch("llm_webchat.server.subprocess.Popen", return_value=mock_process):
-        _run_llm_subprocess(conversation_event_queues, conversation_id, "Hi")
+        _run_llm_subprocess(conversation_event_queues, conversation_id, "Hi", "gpt-4")
 
     events = _drain_queue(queue)
 
@@ -277,10 +287,27 @@ def test_run_llm_subprocess_calls_llm_with_correct_arguments() -> None:
     mock_process = _make_fake_popen([b"response"])
 
     with patch("llm_webchat.server.subprocess.Popen", return_value=mock_process) as mock_popen:
-        _run_llm_subprocess(conversation_event_queues, conversation_id, "What is Python?")
+        _run_llm_subprocess(conversation_event_queues, conversation_id, "What is Python?", "claude-3-opus")
 
     mock_popen.assert_called_once_with(
-        ["llm", "--cid", conversation_id, "What is Python?"],
+        ["llm", "-m", "claude-3-opus", "--cid", conversation_id, "What is Python?"],
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
     )
+
+
+def test_list_models(client: TestClient) -> None:
+    mock_model_1 = MagicMock()
+    mock_model_1.model_id = "gpt-4"
+    mock_model_2 = MagicMock()
+    mock_model_2.model_id = "claude-3-opus"
+
+    with patch("llm.get_models", return_value=[mock_model_1, mock_model_2]):
+        response = client.get("/api/models")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert "models" in data
+    assert len(data["models"]) == 2
+    assert data["models"][0]["model_id"] == "gpt-4"
+    assert data["models"][1]["model_id"] == "claude-3-opus"

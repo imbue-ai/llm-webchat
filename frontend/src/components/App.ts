@@ -1,7 +1,14 @@
 import m from "mithril";
 import { ConversationSelector, getSelectedConversationId } from "./ConversationSelector";
-import { MessageList, fetchResponses, isConversationNotFound, refetchCurrentConversation } from "./MessageList";
+import {
+  MessageList,
+  fetchResponses,
+  getLastResponseModel,
+  isConversationNotFound,
+  refetchCurrentConversation,
+} from "./MessageList";
 import { MessageInput } from "./MessageInput";
+import { setSelectedModelId } from "./ModelSelector";
 import { NewConversation } from "./NewConversation";
 import { connectToStream, disconnectFromStream } from "./StreamingConnection";
 
@@ -44,6 +51,13 @@ export const App: m.Component = {
       userScrolledUp = false;
     }
     previousConversationId = selectedConversationId;
+
+    if (selectedConversationId) {
+      const lastModel = getLastResponseModel();
+      if (lastModel) {
+        setSelectedModelId(lastModel);
+      }
+    }
 
     const mainContent = isNewConversationRoute
       ? m(

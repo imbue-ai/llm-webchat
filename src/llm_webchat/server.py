@@ -30,6 +30,8 @@ from llm_webchat.models import ConversationListResponse
 from llm_webchat.models import CreateConversationRequest
 from llm_webchat.models import CreateConversationResponse
 from llm_webchat.models import ErrorResponse
+from llm_webchat.models import ModelInfo
+from llm_webchat.models import ModelListResponse
 from llm_webchat.models import ResponseListResponse
 from llm_webchat.models import SendMessageRequest
 from llm_webchat.models import SendMessageResponse
@@ -98,22 +100,31 @@ def _list_responses_endpoint(request: Request, conversation_id: str) -> Response
     return JSONResponse(content=response.model_dump())
 
 
+def _list_models() -> JSONResponse:
+    from llm import get_models
+
+    models = get_models()
+    model_infos = [ModelInfo(model_id=model.model_id) for model in models]
+    response = ModelListResponse(models=model_infos)
+    return JSONResponse(content=response.model_dump())
+
+
 def _create_conversation(create_conversation_request: CreateConversationRequest, request: Request) -> JSONResponse:
     database = request.app.state.database
-    conversation = create_conversation(database, create_conversation_request.name)
+    conversation = create_conversation(database, create_conversation_request.name, create_conversation_request.model)
     response = CreateConversationResponse(id=conversation.id)
     return JSONResponse(content=response.model_dump(), status_code=201)
 
 
 def _run_llm_subprocess(
-    conversation_event_queues: ConversationEventQueues, conversation_id: str, message: str
+    conversation_event_queues: ConversationEventQueues, conversation_id: str, message: str, model: str
 ) -> None:
     try:
         conversation_event_queues.broadcast(conversation_id, {"type": "user_message", "content": message})
         conversation_event_queues.broadcast(conversation_id, {"type": "message_start"})
 
         process = subprocess.Popen(
-            ["llm", "--cid", conversation_id, message],
+            ["llm", "-m", model, "--cid", conversation_id, message],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
         )
@@ -167,7 +178,7 @@ def _send_message(conversation_id: str, send_message_request: SendMessageRequest
 
     thread = threading.Thread(
         target=_run_llm_subprocess,
-        args=(conversation_event_queues, conversation_id, send_message_request.message),
+        args=(conversation_event_queues, conversation_id, send_message_request.message, send_message_request.model),
         daemon=True,
     )
     thread.start()
@@ -218,6 +229,7 @@ def create_application() -> FastAPI:
     application = FastAPI(lifespan=_lifespan)
 
     application.add_api_route("/", _index, methods=["GET"])
+    application.add_api_route("/api/models", _list_models, methods=["GET"])
     application.add_api_route("/api/conversations", _list_conversations_endpoint, methods=["GET"])
     application.add_api_route(
         "/api/conversations/{conversation_id}/responses", _list_responses_endpoint, methods=["GET"]

@@ -53,17 +53,14 @@ def list_conversations(
     ]
 
 
-DEFAULT_MODEL = "anthropic/claude-opus-4-6"
-
-
-def create_conversation(database: sqlite_utils.Database, name: str) -> Conversation:
+def create_conversation(database: sqlite_utils.Database, name: str, model: str) -> Conversation:
     conversation_id = str(monotonic_ulid()).lower()
     database.execute(
         "INSERT INTO conversations (id, name, model) VALUES (?, ?, ?)",
-        [conversation_id, name, DEFAULT_MODEL],
+        [conversation_id, name, model],
     )
     database.conn.commit()
-    return Conversation(id=conversation_id, name=name, model=DEFAULT_MODEL)
+    return Conversation(id=conversation_id, name=name, model=model)
 
 
 def conversation_exists(database: sqlite_utils.Database, conversation_id: str) -> bool:

@@ -113,6 +113,14 @@ export function isConversationNotFound(): boolean {
   return conversationNotFound;
 }
 
+export function getLastResponseModel(): string | null {
+  if (responses.length === 0) {
+    return null;
+  }
+  const model = responses[responses.length - 1].model;
+  return model || null;
+}
+
 export function refetchCurrentConversation(): void {
   const conversationId = currentConversationId;
   if (conversationId !== null) {

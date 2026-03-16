@@ -61,11 +61,12 @@ don't need to have node or typescript installed at all.
 
 Backend uses fastapi + uvicorn. It provides the following endpoints:
 
+- GET "/api/models" to list all available LLM models
 - GET "/api/conversations" to list the most recent conversations
     - accepts the `?count=` parameter, by default `count=10`.
 - GET "/api/conversations/:id/responses to get all responses in a given conversation
-- POST "/api/conversations/ to create a conversation
-- POST "/api/conversations/:id/ to send a new user message to an existing conversation.
+- POST "/api/conversations/ to create a conversation (requires `name` and `model` in the request body)
+- POST "/api/conversations/:id/ to send a new user message to an existing conversation (requires `message` and `model` in the request body).
 - GET /api/conversations/:id/stream get a stream of events in
 a given conversation. There are several kinds of events:
     - `user_message`: user message that arrived

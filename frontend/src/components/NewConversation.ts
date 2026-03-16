@@ -1,6 +1,7 @@
 import m from "mithril";
 import { fetchConversations } from "./ConversationSelector";
 import { fetchResponses, startStreamingMessage } from "./MessageList";
+import { ModelSelector, getSelectedModelId } from "./ModelSelector";
 
 const MAX_TEXTAREA_HEIGHT_PX = 200;
 const CONVERSATION_NAME_LENGTH = 32;
@@ -28,7 +29,8 @@ function autoResizeTextarea(textarea: HTMLTextAreaElement): void {
 
 async function createConversationAndSend(): Promise<void> {
   const trimmedMessage = messageText.trim();
-  if (!trimmedMessage || creating) {
+  const modelId = getSelectedModelId();
+  if (!trimmedMessage || !modelId || creating) {
     return;
   }
   creating = true;
@@ -38,7 +40,7 @@ async function createConversationAndSend(): Promise<void> {
     const response = await m.request<CreateConversationResponse>({
       method: "POST",
       url: "/api/conversations",
-      body: { name: conversationName(trimmedMessage) },
+      body: { name: conversationName(trimmedMessage), model: modelId },
     });
     const conversationId = response.id;
     messageText = "";
@@ -66,7 +68,7 @@ async function createConversationAndSend(): Promise<void> {
       method: "POST",
       url: "/api/conversations/:conversationId/message",
       params: { conversationId },
-      body: { message: trimmedMessage },
+      body: { message: trimmedMessage, model: modelId },
     });
   } finally {
     creating = false;
@@ -91,27 +93,37 @@ export const NewConversation: m.Component = {
           "Start a new conversation",
         ),
         m("div", { class: "new-conversation-input flex items-end gap-3" }, [
-          m("textarea", {
-            class:
-              "new-conversation-textbox flex-1 resize-none rounded-lg border border-border bg-surface px-4 py-3 text-sm text-text-primary placeholder:text-text-secondary focus:border-primary focus:outline-none",
-            style: { overflowY: "hidden" },
-            placeholder: "Type a message…",
-            rows: 1,
-            value: messageText,
-            disabled: creating,
-            oncreate: (textareaVnode: m.VnodeDOM) => {
-              autoResizeTextarea(textareaVnode.dom as HTMLTextAreaElement);
+          m(
+            "div",
+            {
+              class:
+                "new-conversation-input-box flex-1 flex flex-col rounded-lg border border-border bg-surface focus-within:border-primary transition-colors",
             },
-            onupdate: (textareaVnode: m.VnodeDOM) => {
-              autoResizeTextarea(textareaVnode.dom as HTMLTextAreaElement);
-            },
-            oninput: (event: Event) => {
-              const textarea = event.target as HTMLTextAreaElement;
-              messageText = textarea.value;
-              autoResizeTextarea(textarea);
-            },
-            onkeydown: handleKeydown,
-          }),
+            [
+              m("textarea", {
+                class:
+                  "new-conversation-textbox resize-none bg-transparent px-4 pt-3 pb-1 text-sm text-text-primary placeholder:text-text-secondary focus:outline-none w-full",
+                style: { overflowY: "hidden" },
+                placeholder: "Type a message…",
+                rows: 1,
+                value: messageText,
+                disabled: creating,
+                oncreate: (textareaVnode: m.VnodeDOM) => {
+                  autoResizeTextarea(textareaVnode.dom as HTMLTextAreaElement);
+                },
+                onupdate: (textareaVnode: m.VnodeDOM) => {
+                  autoResizeTextarea(textareaVnode.dom as HTMLTextAreaElement);
+                },
+                oninput: (event: Event) => {
+                  const textarea = event.target as HTMLTextAreaElement;
+                  messageText = textarea.value;
+                  autoResizeTextarea(textarea);
+                },
+                onkeydown: handleKeydown,
+              }),
+              m("div", { class: "new-conversation-toolbar flex justify-end px-3 pb-2" }, [m(ModelSelector)]),
+            ],
+          ),
           m(
             "button",
             {
