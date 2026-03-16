@@ -79,6 +79,13 @@ def _index() -> Response:
     return HTMLResponse(_FRONTEND_NOT_BUILT_HTML)
 
 
+def _favicon() -> Response:
+    favicon_path = STATIC_DIRECTORY / "favicon.ico"
+    if favicon_path.exists():
+        return FileResponse(favicon_path, media_type="image/x-icon")
+    return Response(status_code=404)
+
+
 def _list_conversations_endpoint(request: Request, count: int = 10) -> Response:
     database = request.app.state.database
     conversations = list_conversations(database, count=count)
@@ -229,6 +236,7 @@ def create_application() -> FastAPI:
     application = FastAPI(lifespan=_lifespan)
 
     application.add_api_route("/", _index, methods=["GET"])
+    application.add_api_route("/favicon.ico", _favicon, methods=["GET"])
     application.add_api_route("/api/models", _list_models, methods=["GET"])
     application.add_api_route("/api/conversations", _list_conversations_endpoint, methods=["GET"])
     application.add_api_route(

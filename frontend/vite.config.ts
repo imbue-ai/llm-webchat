@@ -4,6 +4,7 @@ import path from "path";
 
 export default defineConfig({
   plugins: [tailwindcss()],
+  publicDir: "media",
   root: ".",
   build: {
     outDir: path.resolve(__dirname, "../src/llm_webchat/static"),
