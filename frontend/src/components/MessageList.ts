@@ -152,10 +152,10 @@ function renderAssistantMessage(responseItem: ResponseItem): m.Vnode {
 }
 
 function renderStreamingIndicator(): m.Vnode {
-  return m("div", { class: "streaming-indicator inline-flex items-center gap-1.5 mt-1" }, [
-    m("span", { class: "streaming-dot streaming-dot-1 w-1.5 h-1.5 rounded-full bg-text-secondary" }),
-    m("span", { class: "streaming-dot streaming-dot-2 w-1.5 h-1.5 rounded-full bg-text-secondary" }),
-    m("span", { class: "streaming-dot streaming-dot-3 w-1.5 h-1.5 rounded-full bg-text-secondary" }),
+  return m("div", { class: "streaming-indicator inline-flex items-center gap-2 mt-4" }, [
+    m("span", { class: "streaming-dot streaming-dot-1 w-2 h-2 rounded-full bg-text-secondary" }),
+    m("span", { class: "streaming-dot streaming-dot-2 w-2 h-2 rounded-full bg-text-secondary" }),
+    m("span", { class: "streaming-dot streaming-dot-3 w-2 h-2 rounded-full bg-text-secondary" }),
   ]);
 }
 
