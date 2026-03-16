@@ -11,7 +11,11 @@ EventBroadcaster = Callable[[str, dict[str, str]], None]
 class LlmWebchatHookSpec:
     @hookspec
     def endpoint(self, app: object) -> None:
-        """Register additional endpoints on the FastAPI application."""
+        """Register additional endpoints or override built-in endpoints on the FastAPI application.
+
+        Plugin routes are registered before built-in routes, so a plugin may override
+        a built-in endpoint by registering a route with the same path and method.
+        """
 
     @hookspec
     def register_event_broadcaster(self, broadcaster: EventBroadcaster) -> None:

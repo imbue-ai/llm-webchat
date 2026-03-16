@@ -260,6 +260,9 @@ def _stream_events(conversation_id: str, request: Request) -> Response:
 def create_application() -> FastAPI:
     application = FastAPI(lifespan=_lifespan)
 
+    plugin_manager = get_plugin_manager()
+    plugin_manager.hook.endpoint(app=application)
+
     application.add_api_route("/", _index, methods=["GET"])
     application.add_api_route("/favicon.ico", _favicon, methods=["GET"])
     application.add_api_route("/api/models", _list_models, methods=["GET"])
@@ -276,8 +279,5 @@ def create_application() -> FastAPI:
         application.mount("/assets", StaticFiles(directory=assets_directory), name="assets")
     if STATIC_DIRECTORY.is_dir():
         application.mount("/static", StaticFiles(directory=STATIC_DIRECTORY), name="static")
-
-    plugin_manager = get_plugin_manager()
-    plugin_manager.hook.endpoint(app=application)
 
     return application

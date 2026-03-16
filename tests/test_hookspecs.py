@@ -2,6 +2,8 @@ from collections.abc import Iterator
 
 import pytest
 import sqlite_utils
+from fastapi import FastAPI
+from fastapi.responses import JSONResponse
 from starlette.testclient import TestClient
 
 from llm_webchat.event_queues import ConversationEventQueues
@@ -58,3 +60,31 @@ def test_injected_event_arrives_on_registered_queue(
     assert event["content"] == "hello from plugin"
 
     conversation_event_queues.unregister("conv1", event_queue)
+
+
+class EndpointOverridePlugin:
+    @hookimpl
+    def endpoint(self, app: FastAPI) -> None:
+        app.add_api_route("/api/models", self._custom_models, methods=["GET"])
+
+    @staticmethod
+    def _custom_models() -> JSONResponse:
+        return JSONResponse(content={"custom": True})
+
+
+@pytest.fixture()
+def endpoint_override_plugin() -> Iterator[EndpointOverridePlugin]:
+    plugin = EndpointOverridePlugin()
+    plugin_manager = get_plugin_manager()
+    plugin_manager.register(plugin)
+    yield plugin
+    plugin_manager.unregister(plugin)
+
+
+def test_plugin_can_override_builtin_endpoint(
+    endpoint_override_plugin: EndpointOverridePlugin,
+    client: TestClient,
+) -> None:
+    response = client.get("/api/models")
+    assert response.status_code == 200
+    assert response.json() == {"custom": True}
