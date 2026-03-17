@@ -77,10 +77,12 @@ export const App: m.Component = {
     }
 
     const conversationChanged = previousConversationId !== selectedConversationId;
-    if (conversationChanged && previousConversationId !== null) {
-      refetchCurrentConversation();
+    if (conversationChanged) {
+      if (previousConversationId !== null) {
+        refetchCurrentConversation();
+        modelSyncedForConversation = null;
+      }
       userScrolledUp = window.location.hash.length > 1;
-      modelSyncedForConversation = null;
     }
     previousConversationId = selectedConversationId;
 
