@@ -35,7 +35,7 @@ npm run build
 Run the backend (serves the built frontend at `/`):
 
 ```bash
-uv run uvicorn llm_webchat.server:create_application --factory
+uv run llm-webchat
 ```
 
 For frontend development with hot reload (proxies `/api` requests to the backend):

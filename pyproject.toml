@@ -15,6 +15,9 @@ dependencies = [
     "sqlite-utils>=3.39",
 ]
 
+[project.scripts]
+llm-webchat = "llm_webchat:main"
+
 [project.entry-points.llm]
 webchat = "llm_webchat"
 
