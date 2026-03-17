@@ -1,5 +1,3 @@
-// $llm global plugin API — must be imported before anything else
-
 interface ConversationInfo {
   id: string;
   name: string;
@@ -204,13 +202,6 @@ const llmApi: LlmApi = {
     hookListeners[eventName].push(callback as AnyHookCallback);
   },
 };
-
-declare global {
-  interface Window {
-    $llm: LlmApi;
-  }
-  var $llm: LlmApi;
-}
 
 export { llmApi };
 

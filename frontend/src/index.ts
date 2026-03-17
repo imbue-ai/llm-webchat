@@ -1,7 +1,15 @@
 import { llmApi, runHook } from "./llm-api";
+import type { LlmApi } from "./llm-api";
 import m from "mithril";
 import "./style.css";
 import { App } from "./components/App";
+
+declare global {
+  interface Window {
+    $llm: LlmApi;
+  }
+  var $llm: LlmApi;
+}
 
 window.$llm = llmApi;
 
