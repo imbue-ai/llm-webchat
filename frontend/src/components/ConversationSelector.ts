@@ -1,6 +1,10 @@
 import m from "mithril";
 import { isSlotClaimed, runHook, setConversationsStore } from "../llm-api";
 
+export interface ConversationSelectorAttrs {
+  collapseButton?: m.Vnode | null;
+}
+
 interface Conversation {
   id: string;
   name: string;
@@ -62,12 +66,13 @@ export function getSelectedConversationId(): string | null {
   return attrs ?? null;
 }
 
-export const ConversationSelector: m.Component = {
+export const ConversationSelector: m.Component<ConversationSelectorAttrs> = {
   oninit() {
     fetchConversations();
   },
-  view() {
+  view(vnode: m.Vnode<ConversationSelectorAttrs>) {
     const currentConversationId = getSelectedConversationId();
+    const collapseButton = vnode.attrs.collapseButton ?? null;
 
     const sidebarHeaderClaimed = isSlotClaimed("sidebar-header");
     const sidebarHeader = m(
@@ -76,7 +81,14 @@ export const ConversationSelector: m.Component = {
       sidebarHeaderClaimed
         ? null
         : [
-            m("h2", { class: "conversation-selector-title text-lg font-semibold text-text-primary" }, "Conversations"),
+            m("div", { class: "sidebar-header-row flex items-center justify-between" }, [
+              m(
+                "h2",
+                { class: "conversation-selector-title text-lg font-semibold text-text-primary" },
+                "Conversations",
+              ),
+              collapseButton,
+            ]),
             m(
               "button",
               {

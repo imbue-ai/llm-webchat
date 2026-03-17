@@ -84,12 +84,6 @@ body {
   height: 1.25rem;
 }
 
-.sidebar-collapse-row {
-  display: flex;
-  justify-content: flex-end;
-  margin-bottom: 0.25rem;
-}
-
 /* Markdown content styling for assistant messages */
 .markdown-content {
   line-height: 1.7;

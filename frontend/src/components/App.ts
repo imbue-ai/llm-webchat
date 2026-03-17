@@ -151,11 +151,10 @@ export const App: m.Component = {
       sidebarIconButton("New conversation", navigateToNewConversation, ICON_PLUS),
     ]);
 
+    const collapseButton = sidebarIconButton("Collapse sidebar", toggleSidebar, ICON_PANEL_LEFT_CLOSE);
+
     const expandedContent = m("div", { class: "sidebar-expanded-content flex flex-col flex-1 min-h-0" }, [
-      m("div", { class: "sidebar-collapse-row" }, [
-        sidebarIconButton("Collapse sidebar", toggleSidebar, ICON_PANEL_LEFT_CLOSE),
-      ]),
-      m(ConversationSelector),
+      m(ConversationSelector, { collapseButton }),
     ]);
 
     return m("div", { class: "app-layout flex h-screen" }, [
