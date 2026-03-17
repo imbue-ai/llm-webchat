@@ -1,8 +1,5 @@
-interface ConversationInfo {
-  id: string;
-  name: string;
-  model: string;
-}
+import type { Conversation } from "./models/Conversation";
+import { getConversations } from "./models/Conversation";
 
 interface ResponseItem {
   id: string;
@@ -35,7 +32,7 @@ interface ModelInfo {
 }
 
 interface GetConversationsHookData {
-  conversations: ConversationInfo[];
+  conversations: Conversation[];
 }
 
 interface GetConversationHookData {
@@ -88,7 +85,6 @@ type AnyHookCallback = (...args: any[]) => any;
 const hookListeners: Record<string, AnyHookCallback[]> = {};
 const claimedSlots: Set<string> = new Set();
 
-let conversationsStore: ConversationInfo[] = [];
 const responsesStore: Record<string, ResponseItem[]> = {};
 let modelsStore: ModelInfo[] = [];
 
@@ -140,10 +136,6 @@ export function isSlotClaimed(slotName: string): boolean {
   return claimedSlots.has(slotName);
 }
 
-export function setConversationsStore(conversations: ConversationInfo[]): void {
-  conversationsStore = conversations;
-}
-
 export function setResponsesStore(conversationId: string, responses: ResponseItem[]): void {
   responsesStore[conversationId] = responses;
 }
@@ -155,8 +147,8 @@ export function setModelsStore(models: ModelInfo[]): void {
 interface LlmApi {
   claim(slotName: string): boolean;
   getMessage(messageId: string): MessageData | null;
-  getConversations(): ConversationInfo[];
-  getConversation(conversationId: string): ConversationInfo | null;
+  getConversations(): Conversation[];
+  getConversation(conversationId: string): Conversation | null;
   getModels(): ModelInfo[];
   on<K extends HookName>(eventName: K, callback: HookCallback<HookDataMap[K]>): void;
 }
@@ -183,12 +175,12 @@ const llmApi: LlmApi = {
     return null;
   },
 
-  getConversations(): ConversationInfo[] {
-    return [...conversationsStore];
+  getConversations(): Conversation[] {
+    return [...getConversations()];
   },
 
-  getConversation(conversationId: string): ConversationInfo | null {
-    return conversationsStore.find((conversation) => conversation.id === conversationId) ?? null;
+  getConversation(conversationId: string): Conversation | null {
+    return getConversations().find((conversation) => conversation.id === conversationId) ?? null;
   },
 
   getModels(): ModelInfo[] {
@@ -206,7 +198,7 @@ const llmApi: LlmApi = {
 export { llmApi };
 
 export type {
-  ConversationInfo,
+  Conversation,
   ResponseItem,
   MessageData,
   ModelInfo,

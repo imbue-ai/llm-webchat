@@ -1,69 +1,16 @@
 import m from "mithril";
-import { isSlotClaimed, runHook, setConversationsStore } from "../llm-api";
+import { isSlotClaimed } from "../llm-api";
+import {
+  fetchConversations,
+  getConversations,
+  getLoadingError,
+  getSelectedConversationId,
+  navigateToNewConversation,
+  selectConversation,
+} from "../models/Conversation";
 
 export interface ConversationSelectorAttrs {
   collapseButton?: m.Vnode | null;
-}
-
-interface Conversation {
-  id: string;
-  name: string;
-  model: string;
-}
-
-interface ConversationListResponse {
-  conversations: Conversation[];
-}
-
-let conversations: Conversation[] = [];
-let loadingError: string | null = null;
-let conversationsLoaded = false;
-
-export function getConversations(): Conversation[] {
-  return conversations;
-}
-
-export function getConversationsLoaded(): boolean {
-  return conversationsLoaded;
-}
-
-export async function fetchConversations(): Promise<void> {
-  try {
-    const response = await m.request<ConversationListResponse>({
-      method: "GET",
-      url: "/api/conversations",
-    });
-    const hookResult = runHook("get_conversations", {
-      conversations: response.conversations,
-    });
-    conversations = hookResult.conversations;
-    setConversationsStore(conversations);
-    loadingError = null;
-    conversationsLoaded = true;
-    if (!getSelectedConversationId() && m.route.get() !== "/new") {
-      if (conversations.length > 0) {
-        selectConversation(conversations[0].id);
-      } else {
-        m.route.set("/new");
-      }
-    }
-  } catch (error) {
-    loadingError = (error as Error).message;
-    conversationsLoaded = true;
-  }
-}
-
-function selectConversation(conversationId: string): void {
-  m.route.set("/conversations/:conversationId", { conversationId });
-}
-
-function navigateToNewConversation(): void {
-  m.route.set("/new");
-}
-
-export function getSelectedConversationId(): string | null {
-  const attrs = m.route.param("conversationId");
-  return attrs ?? null;
 }
 
 export const ConversationSelector: m.Component<ConversationSelectorAttrs> = {
@@ -73,6 +20,8 @@ export const ConversationSelector: m.Component<ConversationSelectorAttrs> = {
   view(vnode: m.Vnode<ConversationSelectorAttrs>) {
     const currentConversationId = getSelectedConversationId();
     const collapseButton = vnode.attrs.collapseButton ?? null;
+    const conversations = getConversations();
+    const loadingError = getLoadingError();
 
     const sidebarHeaderClaimed = isSlotClaimed("sidebar-header");
     const sidebarHeader = m(

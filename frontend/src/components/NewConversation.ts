@@ -1,6 +1,6 @@
 import m from "mithril";
 import { runHook } from "../llm-api";
-import { fetchConversations } from "./ConversationSelector";
+import { fetchConversations } from "../models/Conversation";
 import { fetchResponses, startStreamingMessage } from "./MessageList";
 import { ModelSelector, getSelectedModelId } from "./ModelSelector";
 
