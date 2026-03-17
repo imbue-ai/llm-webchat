@@ -25,7 +25,7 @@ function responseItemToMessageData(item: ResponseItem): MessageData {
 
 interface LlmApi {
   claim(slotName: string): boolean;
-  getMessage(messageId: string): MessageData | null;
+  getMessage(messageId: string): Promise<MessageData | null>;
   getConversations(): Conversation[];
   getConversation(conversationId: string): Conversation | null;
   getModels(): Model[];
@@ -37,12 +37,12 @@ const llmApi: LlmApi = {
     return claimSlot(slotName);
   },
 
-  getMessage(messageId: string): MessageData | null {
+  async getMessage(messageId: string): Promise<MessageData | null> {
     for (const responses of Object.values(getAllResponses())) {
       for (const item of responses) {
         if (item.id === messageId) {
           const messageData = responseItemToMessageData(item);
-          const hookResult = runHook("get_message", { message: messageData });
+          const hookResult = await runHook("get_message", { message: messageData });
           return hookResult.message;
         }
       }

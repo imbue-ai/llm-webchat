@@ -147,8 +147,8 @@ type StreamEvent =
   | StreamEventMessageEnd
   | StreamEventError;
 
-function handleStreamEvent(conversationId: string, event: StreamEvent): void {
-  const hookResult = runHook("stream_event", {
+async function handleStreamEvent(conversationId: string, event: StreamEvent): Promise<void> {
+  const hookResult = await runHook("stream_event", {
     conversationId,
     event: {
       type: event.type,

@@ -14,7 +14,7 @@ declare global {
 
 window.$llm = llmApi;
 
-function bootstrap(): void {
+async function bootstrap(): Promise<void> {
   m.route.prefix = "";
   const rootElement = document.getElementById("app");
   if (rootElement) {
@@ -23,7 +23,7 @@ function bootstrap(): void {
       "/new": App,
       "/conversations/:conversationId": App,
     });
-    runHook("ready");
+    await runHook("ready");
   }
 }
 

@@ -58,7 +58,7 @@ export async function createConversationAndSend(
   });
   const conversationId = response.id;
 
-  runHook("post_conversation", {
+  await runHook("post_conversation", {
     id: conversationId,
     name,
     model: modelId,
@@ -71,7 +71,7 @@ export async function createConversationAndSend(
     messageBody.system_prompt = trimmedSystemPrompt;
   }
 
-  const postMessageHookData = runHook("post_conversation_message", {
+  const postMessageHookData = await runHook("post_conversation_message", {
     conversationId,
     message: trimmedMessage,
     model: modelId,
@@ -98,7 +98,7 @@ export async function fetchConversations(): Promise<void> {
       method: "GET",
       url: "/api/conversations",
     });
-    const hookResult = runHook("get_conversations", {
+    const hookResult = await runHook("get_conversations", {
       conversations: response.conversations,
     });
     conversations = hookResult.conversations;

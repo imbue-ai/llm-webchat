@@ -67,7 +67,7 @@ export async function fetchResponses(conversationId: string): Promise<ResponseIt
       throw error;
     });
 
-  const hookResult = runHook("get_conversation", {
+  const hookResult = await runHook("get_conversation", {
     conversationId,
     responses: result.responses,
   });
@@ -80,7 +80,7 @@ export async function sendMessage(conversationId: string, message: string, model
     return;
   }
 
-  const hookResult = runHook("post_conversation_message", {
+  const hookResult = await runHook("post_conversation_message", {
     conversationId,
     message: message.trim(),
     model: modelId,
