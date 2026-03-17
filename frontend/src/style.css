@@ -14,6 +14,7 @@
   --spacing-page: 1.5rem;
   --width-message-column: 48rem;
   --width-sidebar: 16rem;
+  --width-sidebar-collapsed: 3.25rem;
   --duration-sidebar-transition: 200ms;
 }
 
@@ -30,27 +31,42 @@ body {
   min-width: var(--width-sidebar);
   transition:
     width var(--duration-sidebar-transition) ease-in-out,
-    min-width var(--duration-sidebar-transition) ease-in-out,
-    padding var(--duration-sidebar-transition) ease-in-out;
+    min-width var(--duration-sidebar-transition) ease-in-out;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 .app-sidebar.app-sidebar--collapsed {
-  width: 0;
-  min-width: 0;
-  padding: 0;
-  border-right-width: 0;
+  width: var(--width-sidebar-collapsed);
+  min-width: var(--width-sidebar-collapsed);
+  padding: 0.5rem;
 }
 
-.sidebar-toggle-button {
+.app-sidebar--collapsed .sidebar-expanded-content {
+  display: none;
+}
+
+.app-sidebar:not(.app-sidebar--collapsed) .sidebar-collapsed-content {
+  display: none;
+}
+
+.sidebar-collapsed-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.sidebar-icon-button {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 2rem;
-  height: 2rem;
-  border-radius: 0.375rem;
-  border: 1px solid var(--color-border);
-  background-color: var(--color-surface);
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 0.5rem;
+  border: none;
+  background-color: transparent;
   color: var(--color-text-secondary);
   cursor: pointer;
   transition:
@@ -58,9 +74,20 @@ body {
     color 150ms ease-in-out;
 }
 
-.sidebar-toggle-button:hover {
-  background-color: var(--color-surface-secondary);
+.sidebar-icon-button:hover {
+  background-color: var(--color-border);
   color: var(--color-text-primary);
+}
+
+.sidebar-icon-button svg {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.sidebar-collapse-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 0.25rem;
 }
 
 /* Markdown content styling for assistant messages */

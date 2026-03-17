@@ -24,19 +24,27 @@ function toggleSidebar(): void {
   sidebarCollapsed = !sidebarCollapsed;
 }
 
-function SidebarToggleButton(): m.Vnode {
-  const icon = sidebarCollapsed ? "☰" : "✕";
-  const label = sidebarCollapsed ? "Open sidebar" : "Close sidebar";
+function sidebarIconButton(label: string, onclick: () => void, svgPath: string): m.Vnode {
   return m(
     "button",
     {
-      class: "sidebar-toggle-button",
-      onclick: toggleSidebar,
+      class: "sidebar-icon-button",
+      onclick,
       "aria-label": label,
       title: label,
     },
-    icon,
+    m.trust(
+      `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${svgPath}</svg>`,
+    ),
   );
+}
+
+const ICON_PANEL_LEFT_CLOSE = '<path d="M3 3h18v18H3z"/><path d="M9 3v18"/><path d="M14 9l-3 3 3 3"/>';
+const ICON_PANEL_LEFT_OPEN = '<path d="M3 3h18v18H3z"/><path d="M9 3v18"/><path d="M14 9l3 3-3 3"/>';
+const ICON_PLUS = '<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>';
+
+function navigateToNewConversation(): void {
+  m.route.set("/new");
 }
 
 function isNearBottom(element: HTMLElement): boolean {
@@ -138,15 +146,29 @@ export const App: m.Component = {
       .filter(Boolean)
       .join(" ");
 
+    const collapsedRail = m("div", { class: "sidebar-collapsed-content" }, [
+      sidebarIconButton("Expand sidebar", toggleSidebar, ICON_PANEL_LEFT_OPEN),
+      sidebarIconButton("New conversation", navigateToNewConversation, ICON_PLUS),
+    ]);
+
+    const expandedContent = m("div", { class: "sidebar-expanded-content flex flex-col flex-1 min-h-0" }, [
+      m("div", { class: "sidebar-collapse-row" }, [
+        sidebarIconButton("Collapse sidebar", toggleSidebar, ICON_PANEL_LEFT_CLOSE),
+      ]),
+      m(ConversationSelector),
+    ]);
+
     return m("div", { class: "app-layout flex h-screen" }, [
-      m("aside", { class: sidebarClass, "data-slot": "sidebar" }, sidebarClaimed ? null : [m(ConversationSelector)]),
+      m(
+        "aside",
+        { class: sidebarClass, "data-slot": "sidebar" },
+        sidebarClaimed ? null : [collapsedRail, expandedContent],
+      ),
       m("div", { class: "app-main flex flex-1 flex-col" }, [
         m(
           "header",
-          { class: "app-header flex items-center gap-3 border-b border-border px-6 py-3", "data-slot": "header" },
-          headerClaimed
-            ? null
-            : [SidebarToggleButton(), m("h1", { class: "text-xl font-bold text-text-primary" }, "llm webchat")],
+          { class: "app-header border-b border-border px-6 py-3", "data-slot": "header" },
+          headerClaimed ? null : [m("h1", { class: "text-xl font-bold text-text-primary" }, "llm webchat")],
         ),
         mainContent,
         footerElement,
