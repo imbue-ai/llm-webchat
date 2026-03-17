@@ -66,3 +66,26 @@ export async function fetchResponses(conversationId: string): Promise<ResponseIt
   responses[conversationId] = hookResult.responses;
   return hookResult.responses;
 }
+
+export async function sendMessage(conversationId: string, message: string, modelId: string): Promise<void> {
+  if (!message.trim()) {
+    return;
+  }
+
+  const hookResult = runHook("post_conversation_message", {
+    conversationId,
+    message: message.trim(),
+    model: modelId,
+  });
+
+  await m.request({
+    method: "POST",
+    url: "/api/conversations/:conversationId/message",
+    params: { conversationId },
+    body: {
+      message: hookResult.message,
+      model: hookResult.model,
+      ...(hookResult.systemPrompt ? { system_prompt: hookResult.systemPrompt } : {}),
+    },
+  });
+}

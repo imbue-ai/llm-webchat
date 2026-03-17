@@ -12,37 +12,24 @@ interface ModelListResponse {
 
 let models: Model[] = [];
 let modelsLoaded = false;
-let selectedModelId: string | null = null;
-
-function loadPersistedModelId(): string | null {
-  return localStorage.getItem(LOCAL_STORAGE_KEY);
-}
-
-function persistModelId(modelId: string): void {
-  localStorage.setItem(LOCAL_STORAGE_KEY, modelId);
-}
-
-export function getSelectedModelId(): string | null {
-  return selectedModelId;
-}
-
-export function setSelectedModelId(modelId: string): void {
-  if (models.some((model) => model.model_id === modelId)) {
-    selectedModelId = modelId;
-  }
-}
-
-export function selectModelId(modelId: string): void {
-  selectedModelId = modelId;
-  persistModelId(modelId);
-}
 
 export function getModels(): Model[] {
   return models;
 }
 
-export function areModelsLoaded(): boolean {
-  return modelsLoaded;
+export function getDefaultModelId(): string | null {
+  const persisted = localStorage.getItem(LOCAL_STORAGE_KEY);
+  if (persisted && models.some((model) => model.model_id === persisted)) {
+    return persisted;
+  }
+  if (models.length > 0) {
+    return models[0].model_id;
+  }
+  return null;
+}
+
+export function persistSelectedModelId(modelId: string): void {
+  localStorage.setItem(LOCAL_STORAGE_KEY, modelId);
 }
 
 export async function fetchModels(): Promise<void> {
@@ -57,13 +44,6 @@ export async function fetchModels(): Promise<void> {
     });
     models = response.models;
     modelsLoaded = true;
-
-    const persisted = loadPersistedModelId();
-    if (persisted && models.some((model) => model.model_id === persisted)) {
-      selectedModelId = persisted;
-    } else if (models.length > 0) {
-      selectedModelId = models[0].model_id;
-    }
   } catch {
     modelsLoaded = true;
   }

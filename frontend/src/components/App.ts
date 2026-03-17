@@ -9,8 +9,7 @@ import {
   isConversationNotFound,
   refetchCurrentConversation,
 } from "../views/MessageList";
-import { MessageInput } from "./MessageInput";
-import { setSelectedModelId } from "../models/Model";
+import { MessageInput, setSelectedModelId } from "../views/MessageInput";
 import { NewConversation } from "./NewConversation";
 import { connectToStream, disconnectFromStream } from "./StreamingConnection";
 

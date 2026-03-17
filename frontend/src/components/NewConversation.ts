@@ -3,7 +3,7 @@ import { runHook } from "../hooks";
 import { fetchConversations } from "../models/Conversation";
 import { loadConversation } from "../views/MessageList";
 import { startStreamingMessage } from "../models/StreamingMessage";
-import { getSelectedModelId } from "../models/Model";
+import { getDefaultModelId, persistSelectedModelId } from "../models/Model";
 import { ModelSelector } from "../views/ModelSelector";
 
 const MAX_TEXTAREA_HEIGHT_PX = 200;
@@ -17,6 +17,7 @@ let messageText = "";
 let systemPromptText = "";
 let systemPromptExpanded = false;
 let creating = false;
+let selectedModelId: string | null = null;
 
 function conversationName(text: string): string {
   const collapsed = text.replace(/\s+/g, " ").trim();
@@ -34,7 +35,7 @@ function autoResizeTextarea(textarea: HTMLTextAreaElement): void {
 
 async function createConversationAndSend(): Promise<void> {
   const trimmedMessage = messageText.trim();
-  const modelId = getSelectedModelId();
+  const modelId = selectedModelId;
   if (!trimmedMessage || !modelId || creating) {
     return;
   }
@@ -110,6 +111,10 @@ async function createConversationAndSend(): Promise<void> {
 
 export const NewConversation: m.Component = {
   view() {
+    if (selectedModelId === null) {
+      selectedModelId = getDefaultModelId();
+    }
+
     function handleKeydown(event: KeyboardEvent): void {
       if (event.key === "Enter" && !event.shiftKey) {
         event.preventDefault();
@@ -153,7 +158,15 @@ export const NewConversation: m.Component = {
                 },
                 onkeydown: handleKeydown,
               }),
-              m("div", { class: "new-conversation-toolbar flex justify-end px-3 pb-2" }, [m(ModelSelector)]),
+              m("div", { class: "new-conversation-toolbar flex justify-end px-3 pb-2" }, [
+                m(ModelSelector, {
+                  selectedModelId,
+                  onSelect: (modelId: string) => {
+                    selectedModelId = modelId;
+                    persistSelectedModelId(modelId);
+                  },
+                }),
+              ]),
             ],
           ),
           m(

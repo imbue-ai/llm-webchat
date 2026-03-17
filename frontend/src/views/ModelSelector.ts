@@ -1,17 +1,22 @@
 import m from "mithril";
-import { areModelsLoaded, fetchModels, getModels, getSelectedModelId, selectModelId } from "../models/Model";
+import { fetchModels, getModels } from "../models/Model";
 
-export const ModelSelector: m.Component = {
+interface ModelSelectorAttributes {
+  selectedModelId: string | null;
+  onSelect: (modelId: string) => void;
+}
+
+export const ModelSelector: m.Component<ModelSelectorAttributes> = {
   oninit() {
     fetchModels();
   },
-  view() {
-    if (!areModelsLoaded() || getModels().length === 0) {
+  view(vnode) {
+    if (getModels().length === 0) {
       return null;
     }
 
     const models = getModels();
-    const selectedId = getSelectedModelId();
+    const selectedId = vnode.attrs.selectedModelId;
 
     return m("div", { class: "model-selector-wrapper relative inline-block" }, [
       m(
@@ -21,7 +26,7 @@ export const ModelSelector: m.Component = {
           value: selectedId ?? "",
           onchange: (event: Event) => {
             const select = event.target as HTMLSelectElement;
-            selectModelId(select.value);
+            vnode.attrs.onSelect(select.value);
           },
         },
         models.map((model) => m("option", { key: model.model_id, value: model.model_id }, model.model_id)),

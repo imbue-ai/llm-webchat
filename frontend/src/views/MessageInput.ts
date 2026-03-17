@@ -1,51 +1,23 @@
 import m from "mithril";
-import { runHook } from "../hooks";
 import { clearStreamingMessage, isStreaming } from "../models/StreamingMessage";
-import { getSelectedModelId } from "../models/Model";
-import { ModelSelector } from "../views/ModelSelector";
+import { sendMessage } from "../models/Response";
+import { getDefaultModelId, persistSelectedModelId } from "../models/Model";
+import { ModelSelector } from "./ModelSelector";
 
 const MAX_TEXTAREA_HEIGHT_PX = 200;
 
 let messageText = "";
 let sending = false;
+let selectedModelId: string | null = null;
+
+export function setSelectedModelId(modelId: string): void {
+  selectedModelId = modelId;
+}
 
 function autoResizeTextarea(textarea: HTMLTextAreaElement): void {
   textarea.style.height = "auto";
   textarea.style.height = `${Math.min(textarea.scrollHeight, MAX_TEXTAREA_HEIGHT_PX)}px`;
   textarea.style.overflowY = textarea.scrollHeight > MAX_TEXTAREA_HEIGHT_PX ? "auto" : "hidden";
-}
-
-export async function sendMessage(conversationId: string, message: string): Promise<void> {
-  const modelId = getSelectedModelId();
-  if (!message.trim() || !modelId || sending || isStreaming()) {
-    return;
-  }
-  sending = true;
-  clearStreamingMessage();
-  m.redraw();
-
-  try {
-    const hookResult = runHook("post_conversation_message", {
-      conversationId,
-      message: message.trim(),
-      model: modelId,
-    });
-
-    await m.request({
-      method: "POST",
-      url: "/api/conversations/:conversationId/message",
-      params: { conversationId },
-      body: {
-        message: hookResult.message,
-        model: hookResult.model,
-        ...(hookResult.systemPrompt ? { system_prompt: hookResult.systemPrompt } : {}),
-      },
-    });
-    messageText = "";
-  } finally {
-    sending = false;
-    m.redraw();
-  }
 }
 
 export const MessageInput: m.Component<{ conversationId: string | null }> = {
@@ -56,12 +28,32 @@ export const MessageInput: m.Component<{ conversationId: string | null }> = {
       return null;
     }
 
+    if (selectedModelId === null) {
+      selectedModelId = getDefaultModelId();
+    }
+
+    async function handleSend(): Promise<void> {
+      const modelId = selectedModelId;
+      if (!conversationId || !modelId || sending || isStreaming()) {
+        return;
+      }
+      sending = true;
+      clearStreamingMessage();
+      m.redraw();
+
+      try {
+        await sendMessage(conversationId, messageText, modelId);
+        messageText = "";
+      } finally {
+        sending = false;
+        m.redraw();
+      }
+    }
+
     function handleKeydown(event: KeyboardEvent): void {
       if (event.key === "Enter" && !event.shiftKey) {
         event.preventDefault();
-        if (conversationId) {
-          sendMessage(conversationId, messageText);
-        }
+        handleSend();
       }
     }
 
@@ -94,7 +86,15 @@ export const MessageInput: m.Component<{ conversationId: string | null }> = {
             },
             onkeydown: handleKeydown,
           }),
-          m("div", { class: "message-input-toolbar flex justify-end px-3 pb-2" }, [m(ModelSelector)]),
+          m("div", { class: "message-input-toolbar flex justify-end px-3 pb-2" }, [
+            m(ModelSelector, {
+              selectedModelId,
+              onSelect: (modelId: string) => {
+                selectedModelId = modelId;
+                persistSelectedModelId(modelId);
+              },
+            }),
+          ]),
         ],
       ),
       m(
@@ -107,11 +107,7 @@ export const MessageInput: m.Component<{ conversationId: string | null }> = {
               : "bg-primary hover:bg-primary-hover cursor-pointer",
           ].join(" "),
           disabled: sending || isStreaming() || !messageText.trim(),
-          onclick: () => {
-            if (conversationId) {
-              sendMessage(conversationId, messageText);
-            }
-          },
+          onclick: handleSend,
         },
         sending ? "Sending…" : "Send",
       ),
