@@ -15,19 +15,11 @@ let modelsLoaded = false;
 let selectedModelId: string | null = null;
 
 function loadPersistedModelId(): string | null {
-  try {
-    return localStorage.getItem(LOCAL_STORAGE_KEY);
-  } catch {
-    return null;
-  }
+  return localStorage.getItem(LOCAL_STORAGE_KEY);
 }
 
 function persistModelId(modelId: string): void {
-  try {
-    localStorage.setItem(LOCAL_STORAGE_KEY, modelId);
-  } catch {
-    // localStorage unavailable
-  }
+  localStorage.setItem(LOCAL_STORAGE_KEY, modelId);
 }
 
 export function getSelectedModelId(): string | null {
