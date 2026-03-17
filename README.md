@@ -105,11 +105,13 @@ can use as anchor points:
 
 - `<div data-slot="header">`
 - `<div data-slot="sidebar">`
-- `<div data-slot="content">`
-- `<div data-slot="footer">`
+- `<div data-slot="sidebar-header">`
+- `<div data-slot="conversation-selector-item">`
+- `<div data-slot="conversation-content">`
+- `<div data-slot="conversation-footer">`
+- `<div data-slot="new-conversation-content">`
+- `<div data-slot="new-conversation-footer">`
 - `<div data-slot="message" data-message-id="...">`
-- `<div data-slot="conversation-selector">`
-- `<div data-slot="conversation-detail" data-conversation-id="...">`
 
 Furthermore, there's a global "$llm" object that can be used to:
 
@@ -122,10 +124,12 @@ Furthermore, there's a global "$llm" object that can be used to:
     - `$llm.getMessage(messageId)`
     - `$llm.getConversations()`
     - `$llm.getConversation(conversationId)`
+    - `$llm.getModels()`
 - Register for certain events:
     - `$llm.on("ready")` - when the main APP is initialized
     - `$llm.on("get_conversations")` - when a response to `GET /api/conversations` arrives.
     - `$llm.on("get_conversation")`
     - `$llm.on("post_conversation")`
+    - `$llm.on("post_conversation_message")`
     - `$llm.on("get_message")`
     - `$llm.on("stream_event")`

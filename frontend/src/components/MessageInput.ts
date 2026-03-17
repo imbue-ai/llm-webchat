@@ -1,4 +1,5 @@
 import m from "mithril";
+import { runHook } from "../llm-api";
 import { clearStreamingMessage, isStreaming } from "./MessageList";
 import { ModelSelector, getSelectedModelId } from "./ModelSelector";
 
@@ -23,11 +24,21 @@ export async function sendMessage(conversationId: string, message: string): Prom
   m.redraw();
 
   try {
+    const hookResult = runHook("post_conversation_message", {
+      conversationId,
+      message: message.trim(),
+      model: modelId,
+    });
+
     await m.request({
       method: "POST",
       url: "/api/conversations/:conversationId/message",
       params: { conversationId },
-      body: { message: message.trim(), model: modelId },
+      body: {
+        message: hookResult.message,
+        model: hookResult.model,
+        ...(hookResult.systemPrompt ? { system_prompt: hookResult.systemPrompt } : {}),
+      },
     });
     messageText = "";
   } finally {

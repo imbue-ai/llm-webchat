@@ -1,4 +1,5 @@
 import m from "mithril";
+import { isSlotClaimed, runHook, setResponsesStore } from "../llm-api";
 import { renderMarkdown } from "./renderMarkdown";
 
 interface ResponseItem {
@@ -50,7 +51,12 @@ export async function fetchResponses(conversationId: string): Promise<void> {
       params: { conversationId },
     });
     if (conversationId === currentConversationId) {
-      responses = result.responses;
+      const hookResult = runHook("get_conversation", {
+        conversationId,
+        responses: result.responses,
+      });
+      responses = hookResult.responses;
+      setResponsesStore(conversationId, responses);
       loading = false;
       loadingError = null;
     }
@@ -143,15 +149,26 @@ function renderUserMessage(prompt: string): m.Vnode {
 }
 
 function renderAssistantMessage(responseItem: ResponseItem): m.Vnode {
-  return m("div", { class: "message message-assistant mb-6" }, [
-    m(
-      "div",
-      {
-        class: "message-content markdown-content text-sm text-text-primary leading-relaxed",
-      },
-      m.trust(renderMarkdown(responseItem.response)),
-    ),
-  ]);
+  const messageClaimed = isSlotClaimed("message");
+  return m(
+    "div",
+    {
+      class: "message message-assistant mb-6",
+      "data-slot": "message",
+      "data-message-id": responseItem.id,
+    },
+    messageClaimed
+      ? null
+      : [
+          m(
+            "div",
+            {
+              class: "message-content markdown-content text-sm text-text-primary leading-relaxed",
+            },
+            m.trust(renderMarkdown(responseItem.response)),
+          ),
+        ],
+  );
 }
 
 function renderStreamingIndicator(): m.Vnode {

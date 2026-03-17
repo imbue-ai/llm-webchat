@@ -1,4 +1,5 @@
 import m from "mithril";
+import { runHook } from "../llm-api";
 import { fetchConversations } from "./ConversationSelector";
 import { fetchResponses, startStreamingMessage } from "./MessageList";
 import { ModelSelector, getSelectedModelId } from "./ModelSelector";
@@ -39,12 +40,20 @@ async function createConversationAndSend(): Promise<void> {
   m.redraw();
 
   try {
+    const name = conversationName(trimmedMessage);
     const response = await m.request<CreateConversationResponse>({
       method: "POST",
       url: "/api/conversations",
-      body: { name: conversationName(trimmedMessage), model: modelId },
+      body: { name, model: modelId },
     });
     const conversationId = response.id;
+
+    runHook("post_conversation", {
+      id: conversationId,
+      name,
+      model: modelId,
+    });
+
     const trimmedSystemPrompt = systemPromptText.trim();
     messageText = "";
     systemPromptText = "";
@@ -73,11 +82,23 @@ async function createConversationAndSend(): Promise<void> {
     if (trimmedSystemPrompt) {
       messageBody.system_prompt = trimmedSystemPrompt;
     }
+
+    const postMessageHookData = runHook("post_conversation_message", {
+      conversationId,
+      message: trimmedMessage,
+      model: modelId,
+      systemPrompt: trimmedSystemPrompt || undefined,
+    });
+
     await m.request({
       method: "POST",
       url: "/api/conversations/:conversationId/message",
       params: { conversationId },
-      body: messageBody,
+      body: {
+        message: postMessageHookData.message,
+        model: postMessageHookData.model,
+        ...(postMessageHookData.systemPrompt ? { system_prompt: postMessageHookData.systemPrompt } : {}),
+      },
     });
   } finally {
     creating = false;

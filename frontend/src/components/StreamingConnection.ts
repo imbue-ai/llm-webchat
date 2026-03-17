@@ -1,4 +1,5 @@
 import m from "mithril";
+import { runHook } from "../llm-api";
 import {
   appendStreamingDelta,
   finalizeStreamingMessage,
@@ -21,7 +22,7 @@ export function connectToStream(conversationId: string): void {
 
   eventSource.onmessage = (event: MessageEvent) => {
     const data = JSON.parse(event.data) as StreamEvent;
-    handleStreamEvent(data);
+    handleStreamEvent(conversationId, data);
   };
 
   eventSource.onerror = () => {
@@ -74,21 +75,31 @@ type StreamEvent =
   | StreamEventMessageEnd
   | StreamEventError;
 
-function handleStreamEvent(event: StreamEvent): void {
-  switch (event.type) {
+function handleStreamEvent(conversationId: string, event: StreamEvent): void {
+  const hookResult = runHook("stream_event", {
+    conversationId,
+    event: {
+      type: event.type,
+      content: "content" in event ? event.content : undefined,
+    },
+  });
+
+  const processedEvent = hookResult.event;
+
+  switch (processedEvent.type) {
     case "user_message":
-      startStreamingMessage(event.content);
+      startStreamingMessage(processedEvent.content ?? "");
       break;
     case "message_start":
       break;
     case "message_delta":
-      appendStreamingDelta(event.content);
+      appendStreamingDelta(processedEvent.content ?? "");
       break;
     case "message_end":
       finalizeStreamingMessage();
       break;
     case "error":
-      markStreamingError(event.content);
+      markStreamingError(processedEvent.content ?? "Unknown error");
       break;
   }
   m.redraw();

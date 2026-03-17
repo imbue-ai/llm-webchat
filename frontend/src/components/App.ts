@@ -1,4 +1,5 @@
 import m from "mithril";
+import { isSlotClaimed } from "../llm-api";
 import { ConversationSelector, getSelectedConversationId } from "./ConversationSelector";
 import {
   MessageList,
@@ -63,20 +64,23 @@ export const App: m.Component = {
       }
     }
 
+    const headerClaimed = isSlotClaimed("header");
+    const sidebarClaimed = isSlotClaimed("sidebar");
+
     const mainContent = isNewConversationRoute
       ? m(
           "main",
           {
             class: "app-content flex-1 overflow-y-auto p-6",
-            "data-slot": "content",
+            "data-slot": "new-conversation-content",
           },
-          [m(NewConversation)],
+          isSlotClaimed("new-conversation-content") ? null : [m(NewConversation)],
         )
       : m(
           "main",
           {
             class: "app-content flex-1 overflow-y-auto p-6",
-            "data-slot": "content",
+            "data-slot": "conversation-content",
             onscroll: handleScrollEvent,
             oncreate: (mainVnode: m.VnodeDOM) => {
               scrollToBottom(mainVnode.dom as HTMLElement);
@@ -87,27 +91,40 @@ export const App: m.Component = {
               }
             },
           },
-          [m(MessageList, { conversationId: selectedConversationId })],
+          isSlotClaimed("conversation-content") ? null : [m(MessageList, { conversationId: selectedConversationId })],
         );
+
+    const showConversationFooter = !isNewConversationRoute && !isConversationNotFound();
+    const showNewConversationFooter = isNewConversationRoute;
+
+    let footerElement: m.Vnode | null = null;
+    if (showConversationFooter) {
+      footerElement = m(
+        "footer",
+        { class: "app-footer border-t border-border px-6 py-3", "data-slot": "conversation-footer" },
+        isSlotClaimed("conversation-footer") ? null : m(MessageInput, { conversationId: selectedConversationId }),
+      );
+    } else if (showNewConversationFooter) {
+      footerElement = m("footer", {
+        class: "app-footer border-t border-border px-6 py-3",
+        "data-slot": "new-conversation-footer",
+      });
+    }
 
     return m("div", { class: "app-layout flex h-screen" }, [
       m(
         "aside",
         { class: "app-sidebar w-64 border-r border-border bg-surface-secondary p-4", "data-slot": "sidebar" },
-        [m(ConversationSelector)],
+        sidebarClaimed ? null : [m(ConversationSelector)],
       ),
       m("div", { class: "app-main flex flex-1 flex-col" }, [
-        m("header", { class: "app-header border-b border-border px-6 py-3", "data-slot": "header" }, [
-          m("h1", { class: "text-xl font-bold text-text-primary" }, "llm webchat"),
-        ]),
+        m(
+          "header",
+          { class: "app-header border-b border-border px-6 py-3", "data-slot": "header" },
+          headerClaimed ? null : [m("h1", { class: "text-xl font-bold text-text-primary" }, "llm webchat")],
+        ),
         mainContent,
-        isNewConversationRoute || isConversationNotFound()
-          ? null
-          : m(
-              "footer",
-              { class: "app-footer border-t border-border px-6 py-3", "data-slot": "footer" },
-              m(MessageInput, { conversationId: selectedConversationId }),
-            ),
+        footerElement,
       ]),
     ]);
   },

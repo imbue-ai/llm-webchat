@@ -1,4 +1,5 @@
 import m from "mithril";
+import { setModelsStore } from "../llm-api";
 
 const LOCAL_STORAGE_KEY = "llm-webchat-selected-model";
 
@@ -60,6 +61,7 @@ export async function fetchModels(): Promise<void> {
     });
     models = response.models;
     modelsLoaded = true;
+    setModelsStore(models);
 
     const persisted = loadPersistedModelId();
     if (persisted && models.some((model) => model.model_id === persisted)) {

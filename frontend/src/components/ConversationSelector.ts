@@ -1,4 +1,5 @@
 import m from "mithril";
+import { isSlotClaimed, runHook, setConversationsStore } from "../llm-api";
 
 interface Conversation {
   id: string;
@@ -28,7 +29,11 @@ export async function fetchConversations(): Promise<void> {
       method: "GET",
       url: "/api/conversations",
     });
-    conversations = response.conversations;
+    const hookResult = runHook("get_conversations", {
+      conversations: response.conversations,
+    });
+    conversations = hookResult.conversations;
+    setConversationsStore(conversations);
     loadingError = null;
     conversationsLoaded = true;
     if (!getSelectedConversationId() && m.route.get() !== "/new") {
@@ -63,19 +68,33 @@ export const ConversationSelector: m.Component = {
   },
   view() {
     const currentConversationId = getSelectedConversationId();
+
+    const sidebarHeaderClaimed = isSlotClaimed("sidebar-header");
+    const sidebarHeader = m(
+      "div",
+      { "data-slot": "sidebar-header" },
+      sidebarHeaderClaimed
+        ? null
+        : [
+            m("h2", { class: "conversation-selector-title text-lg font-semibold text-text-primary" }, "Conversations"),
+            m(
+              "button",
+              {
+                class: [
+                  "new-conversation-button mt-3 mb-3 w-full rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors cursor-pointer",
+                  "bg-primary hover:bg-primary-hover",
+                ].join(" "),
+                onclick: navigateToNewConversation,
+              },
+              "+ New Conversation",
+            ),
+          ],
+    );
+
+    const conversationSelectorItemClaimed = isSlotClaimed("conversation-selector-item");
+
     return m("div", { class: "conversation-selector", "data-slot": "conversation-selector" }, [
-      m("h2", { class: "conversation-selector-title text-lg font-semibold text-text-primary" }, "Conversations"),
-      m(
-        "button",
-        {
-          class: [
-            "new-conversation-button mt-3 mb-3 w-full rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors cursor-pointer",
-            "bg-primary hover:bg-primary-hover",
-          ].join(" "),
-          onclick: navigateToNewConversation,
-        },
-        "+ New Conversation",
-      ),
+      sidebarHeader,
       loadingError
         ? m("p", { class: "conversation-selector-error mt-2 text-sm text-red-500" }, `Error: ${loadingError}`)
         : conversations.length === 0
@@ -95,20 +114,24 @@ export const ConversationSelector: m.Component = {
                         ? "bg-primary/10 text-primary font-medium"
                         : "text-text-secondary hover:bg-surface-secondary hover:text-text-primary",
                     ].join(" "),
+                    "data-slot": "conversation-selector-item",
+                    "data-conversation-id": conversation.id,
                     onclick: () => selectConversation(conversation.id),
                   },
-                  [
-                    m(
-                      "div",
-                      { class: "conversation-selector-item-name truncate" },
-                      conversation.name || "Untitled conversation",
-                    ),
-                    m(
-                      "div",
-                      { class: "conversation-selector-item-model mt-0.5 truncate text-xs text-text-secondary" },
-                      conversation.model,
-                    ),
-                  ],
+                  conversationSelectorItemClaimed
+                    ? null
+                    : [
+                        m(
+                          "div",
+                          { class: "conversation-selector-item-name truncate" },
+                          conversation.name || "Untitled conversation",
+                        ),
+                        m(
+                          "div",
+                          { class: "conversation-selector-item-model mt-0.5 truncate text-xs text-text-secondary" },
+                          conversation.model,
+                        ),
+                      ],
                 ),
               ),
             ),
