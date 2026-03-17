@@ -1,3 +1,10 @@
+/**
+ * Manages the single in-flight streaming message and the SSE connection that
+ * feeds it. Only one conversation can be streamed at a time (the one the user
+ * is viewing), so both the message state and the EventSource are kept as
+ * module-level singletons rather than per-conversation instances.
+ */
+
 import m from "mithril";
 import { runHook } from "../hooks";
 
