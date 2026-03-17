@@ -43,6 +43,7 @@ export async function fetchResponses(conversationId: string): Promise<void> {
   conversationNotFound = false;
   responses = [];
   streamingMessage = null;
+  pendingHashScroll = window.location.hash.length > 1;
 
   try {
     const result = await m.request<ResponseListResponse>({
@@ -153,6 +154,7 @@ function renderAssistantMessage(responseItem: ResponseItem): m.Vnode {
   return m(
     "div",
     {
+      id: responseItem.id,
       class: "message message-assistant mb-6",
       "data-slot": "message",
       "data-message-id": responseItem.id,
@@ -220,7 +222,26 @@ function renderErrorMessage(errorContent: string, partialAssistantContent: strin
   return m("div", { class: "message message-error mb-6" }, children);
 }
 
+let pendingHashScroll = false;
+
+function scrollToHashTarget(): void {
+  const hash = window.location.hash;
+  if (!hash) {
+    return;
+  }
+  const element = document.getElementById(hash.slice(1));
+  if (element) {
+    element.scrollIntoView({ behavior: "smooth", block: "center" });
+    pendingHashScroll = false;
+  }
+}
+
 export const MessageList: m.Component<{ conversationId: string | null }> = {
+  onupdate() {
+    if (pendingHashScroll && !loading) {
+      scrollToHashTarget();
+    }
+  },
   view(vnode) {
     const conversationId = vnode.attrs.conversationId;
 
