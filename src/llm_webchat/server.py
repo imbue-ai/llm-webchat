@@ -75,9 +75,24 @@ async def _lifespan(application: FastAPI) -> AsyncIterator[None]:
         signal.signal(signal.SIGINT, original_sigint_handler)
 
 
-def _index() -> Response:
+def _build_plugin_script_tags(plugin_basenames: list[str]) -> str:
+    return "\n".join(f'<script src="/plugins/{basename}"></script>' for basename in plugin_basenames)
+
+
+def _inject_plugin_script_tags(html_content: str, plugin_basenames: list[str]) -> str:
+    script_tags = _build_plugin_script_tags(plugin_basenames)
+    # This is fragile but should be fine in practice.
+    return html_content.replace("</body>", f"{script_tags}\n</body>")
+
+
+def _index(request: Request) -> Response:
     index_path = STATIC_DIRECTORY / "index.html"
     if index_path.exists():
+        plugin_basename_to_path: dict[str, str] = request.app.state.plugin_basename_to_path
+        if plugin_basename_to_path:
+            html_content = index_path.read_text()
+            html_content = _inject_plugin_script_tags(html_content, list(plugin_basename_to_path.keys()))
+            return HTMLResponse(html_content)
         return FileResponse(index_path, media_type="text/html")
     return HTMLResponse(_FRONTEND_NOT_BUILT_HTML)
 
@@ -257,8 +272,22 @@ def _stream_events(conversation_id: str, request: Request) -> Response:
     )
 
 
-def create_application() -> FastAPI:
+def _serve_javascript_plugin(basename: str, request: Request) -> Response:
+    plugin_basename_to_path: dict[str, str] = request.app.state.plugin_basename_to_path
+    plugin_path_string = plugin_basename_to_path.get(basename)
+    if plugin_path_string is None:
+        error = ErrorResponse(detail=f"Plugin '{basename}' not found")
+        return JSONResponse(content=error.model_dump(), status_code=404)
+    plugin_path = Path(plugin_path_string)
+    if not plugin_path.is_file():
+        error = ErrorResponse(detail=f"Plugin file not found: {plugin_path}")
+        return JSONResponse(content=error.model_dump(), status_code=404)
+    return FileResponse(plugin_path, media_type="application/javascript")
+
+
+def create_application(javascript_plugin_basename_to_path: dict[str, str] | None = None) -> FastAPI:
     application = FastAPI(lifespan=_lifespan)
+    application.state.plugin_basename_to_path = javascript_plugin_basename_to_path or {}
 
     plugin_manager = get_plugin_manager()
     plugin_manager.hook.endpoint(app=application)
@@ -273,6 +302,7 @@ def create_application() -> FastAPI:
     application.add_api_route("/api/conversations", _create_conversation, methods=["POST"])
     application.add_api_route("/api/conversations/{conversation_id}/message", _send_message, methods=["POST"])
     application.add_api_route("/api/conversations/{conversation_id}/stream", _stream_events, methods=["GET"])
+    application.add_api_route("/plugins/{basename}", _serve_javascript_plugin, methods=["GET"])
 
     assets_directory = STATIC_DIRECTORY / "assets"
     if assets_directory.is_dir():

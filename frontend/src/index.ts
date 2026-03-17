@@ -1,17 +1,21 @@
-import "./llm-api";
+import { llmApi, runHook } from "./llm-api";
 import m from "mithril";
 import "./style.css";
 import { App } from "./components/App";
-import { runHook } from "./llm-api";
 
-m.route.prefix = "";
+window.$llm = llmApi;
 
-const rootElement = document.getElementById("app");
-if (rootElement) {
-  m.route(rootElement, "/", {
-    "/": App,
-    "/new": App,
-    "/conversations/:conversationId": App,
-  });
-  runHook("ready");
+function bootstrap(): void {
+  m.route.prefix = "";
+  const rootElement = document.getElementById("app");
+  if (rootElement) {
+    m.route(rootElement, "/", {
+      "/": App,
+      "/new": App,
+      "/conversations/:conversationId": App,
+    });
+    runHook("ready");
+  }
 }
+
+window.addEventListener("load", bootstrap);

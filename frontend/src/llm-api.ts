@@ -205,7 +205,6 @@ const llmApi: LlmApi = {
   },
 };
 
-// Make $llm globally available immediately
 declare global {
   interface Window {
     $llm: LlmApi;
@@ -213,7 +212,7 @@ declare global {
   var $llm: LlmApi;
 }
 
-window.$llm = llmApi;
+export { llmApi };
 
 export type {
   ConversationInfo,
