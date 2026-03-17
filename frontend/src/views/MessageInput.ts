@@ -89,6 +89,7 @@ export const MessageInput: m.Component<{ conversationId: string | null }> = {
           m("div", { class: "message-input-toolbar flex justify-end px-3 pb-2" }, [
             m(ModelSelector, {
               selectedModelId,
+              disabled: sending || isStreaming(),
               onSelect: (modelId: string) => {
                 selectedModelId = modelId;
                 persistSelectedModelId(modelId);
