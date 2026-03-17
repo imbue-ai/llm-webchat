@@ -2,11 +2,11 @@ import m from "mithril";
 import { isSlotClaimed } from "../slots";
 import { getSelectedConversationId, navigateToNewConversation } from "../models/Conversation";
 import { getLastResponseModel, isConversationNotFound } from "../models/Response";
-import { ConversationSelector } from "../views/ConversationSelector";
-import { MessageList } from "../views/MessageList";
-import { MessageInput, setSelectedModelId } from "../views/MessageInput";
-import { NewConversation } from "../views/NewConversation";
-import { connectToStream, disconnectFromStream } from "./StreamingConnection";
+import { ConversationSelector } from "./ConversationSelector";
+import { MessageList } from "./MessageList";
+import { MessageInput, setSelectedModelId } from "./MessageInput";
+import { NewConversation } from "./NewConversation";
+import { connectToStream, disconnectFromStream } from "../models/StreamingMessage";
 
 const SCROLL_BOTTOM_THRESHOLD_PX = 40;
 

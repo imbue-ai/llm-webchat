@@ -8,7 +8,7 @@ import {
   type ResponseItem,
 } from "../models/Response";
 import { getStreamingMessage, type StreamingMessage } from "../models/StreamingMessage";
-import { renderMarkdown } from "../components/renderMarkdown";
+import { renderMarkdown } from "../markdown";
 
 function scrollToHashTarget(): void {
   const hash = window.location.hash;

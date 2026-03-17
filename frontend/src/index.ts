@@ -3,7 +3,7 @@ import type { LlmApi } from "./llm-api";
 import { runHook } from "./hooks";
 import m from "mithril";
 import "./style.css";
-import { App } from "./components/App";
+import { App } from "./views/App";
 
 declare global {
   interface Window {
