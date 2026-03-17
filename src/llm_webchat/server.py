@@ -280,4 +280,6 @@ def create_application() -> FastAPI:
     if STATIC_DIRECTORY.is_dir():
         application.mount("/static", StaticFiles(directory=STATIC_DIRECTORY), name="static")
 
+    application.add_api_route("/{path:path}", _index, methods=["GET"])
+
     return application

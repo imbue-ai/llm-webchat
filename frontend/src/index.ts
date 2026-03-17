@@ -4,6 +4,8 @@ import "./style.css";
 import { App } from "./components/App";
 import { runHook } from "./llm-api";
 
+m.route.prefix = "";
+
 const rootElement = document.getElementById("app");
 if (rootElement) {
   m.route(rootElement, "/", {
