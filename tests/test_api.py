@@ -371,7 +371,8 @@ def plugin_files(tmp_path: Path) -> list[Path]:
 @pytest.fixture()
 def client_with_plugins(llm_user_path: Path, plugin_files: list[Path]) -> Iterator[TestClient]:
     application = create_application(
-        javascript_plugin_basename_to_path={path.name: str(path) for path in plugin_files},
+        static_file_basename_to_path={path.name: str(path) for path in plugin_files},
+        javascript_plugin_basenames=[path.name for path in plugin_files],
     )
     with TestClient(application) as test_client:
         yield test_client
@@ -380,7 +381,7 @@ def client_with_plugins(llm_user_path: Path, plugin_files: list[Path]) -> Iterat
 def test_serve_javascript_plugin_by_basename(client_with_plugins: TestClient, plugin_files: list[Path]) -> None:
     response = client_with_plugins.get("/plugins/plugin_one.js")
     assert response.status_code == 200
-    assert response.headers["content-type"].startswith("application/javascript")
+    assert "javascript" in response.headers["content-type"]
     assert response.text == plugin_files[0].read_text()
 
     response = client_with_plugins.get("/plugins/plugin_two.js")
@@ -400,7 +401,7 @@ def test_serve_javascript_plugin_no_plugins_configured(client: TestClient) -> No
 
 def _make_static_directory_with_index_html(base_path: Path) -> Path:
     static_directory = base_path / "static"
-    static_directory.mkdir()
+    static_directory.mkdir(parents=True, exist_ok=True)
     index_html = static_directory / "index.html"
     index_html.write_text('<html><head></head><body><div id="app"></div></body></html>')
     return static_directory
@@ -453,10 +454,112 @@ def test_duplicate_plugin_basenames_raises_error(tmp_path: Path) -> None:
     (dir_one / "plugin.js").write_text("")
     (dir_two / "plugin.js").write_text("")
 
-    with pytest.raises(ValidationError, match="Duplicate plugin basename 'plugin.js'"):
+    with pytest.raises(ValidationError, match="Duplicate static basename 'plugin.js'"):
         Config(
             llm_webchat_javascript_plugins=[
                 str(dir_one / "plugin.js"),
                 str(dir_two / "plugin.js"),
             ],
         )
+
+
+def test_duplicate_basenames_across_plugins_and_static_paths_raises_error(tmp_path: Path) -> None:
+    from pydantic import ValidationError
+
+    from llm_webchat.config import Config
+
+    dir_one = tmp_path / "a"
+    dir_one.mkdir()
+    dir_two = tmp_path / "b"
+    dir_two.mkdir()
+    (dir_one / "shared.js").write_text("")
+    (dir_two / "shared.js").write_text("")
+
+    with pytest.raises(ValidationError, match="Duplicate static basename 'shared.js'"):
+        Config(
+            llm_webchat_javascript_plugins=[str(dir_one / "shared.js")],
+            llm_webchat_static_paths=[str(dir_two / "shared.js")],
+        )
+
+
+@pytest.fixture()
+def static_asset_files(tmp_path: Path) -> list[Path]:
+    css_file = tmp_path / "styles.css"
+    css_file.write_text("body { color: red; }")
+    image_file = tmp_path / "icon.png"
+    image_file.write_bytes(b"\x89PNG\r\n\x1a\n")
+    return [css_file, image_file]
+
+
+@pytest.fixture()
+def client_with_static_paths(llm_user_path: Path, static_asset_files: list[Path]) -> Iterator[TestClient]:
+    application = create_application(
+        static_file_basename_to_path={path.name: str(path) for path in static_asset_files},
+    )
+    with TestClient(application) as test_client:
+        yield test_client
+
+
+def test_serve_static_path_by_basename(client_with_static_paths: TestClient, static_asset_files: list[Path]) -> None:
+    response = client_with_static_paths.get("/plugins/styles.css")
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith("text/css")
+    assert response.text == static_asset_files[0].read_text()
+
+    response = client_with_static_paths.get("/plugins/icon.png")
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith("image/png")
+
+
+def test_static_paths_not_injected_as_script_tags(
+    static_asset_files: list[Path], tmp_path: Path, llm_user_path: Path
+) -> None:
+    import llm_webchat.server as server_module
+
+    original_static = server_module.STATIC_DIRECTORY
+    try:
+        server_module.STATIC_DIRECTORY = _make_static_directory_with_index_html(tmp_path / "frontend")
+        application = create_application(
+            static_file_basename_to_path={path.name: str(path) for path in static_asset_files},
+        )
+        with TestClient(application) as test_client:
+            response = test_client.get("/")
+            assert response.status_code == 200
+            assert "/plugins/" not in response.text
+    finally:
+        server_module.STATIC_DIRECTORY = original_static
+
+
+def test_mixed_plugins_and_static_paths(
+    plugin_files: list[Path], static_asset_files: list[Path], tmp_path: Path, llm_user_path: Path
+) -> None:
+    import llm_webchat.server as server_module
+
+    all_files = plugin_files + static_asset_files
+    original_static = server_module.STATIC_DIRECTORY
+    try:
+        server_module.STATIC_DIRECTORY = _make_static_directory_with_index_html(tmp_path / "frontend")
+        application = create_application(
+            static_file_basename_to_path={path.name: str(path) for path in all_files},
+            javascript_plugin_basenames=[path.name for path in plugin_files],
+        )
+        with TestClient(application) as test_client:
+            # JS plugins are served
+            response = test_client.get("/plugins/plugin_one.js")
+            assert response.status_code == 200
+            assert "javascript" in response.headers["content-type"]
+
+            # Static assets are served
+            response = test_client.get("/plugins/styles.css")
+            assert response.status_code == 200
+            assert response.headers["content-type"].startswith("text/css")
+
+            # Only JS plugins are injected as script tags
+            response = test_client.get("/")
+            assert response.status_code == 200
+            assert "plugin_one.js" in response.text
+            assert "plugin_two.js" in response.text
+            assert "styles.css" not in response.text
+            assert "icon.png" not in response.text
+    finally:
+        server_module.STATIC_DIRECTORY = original_static

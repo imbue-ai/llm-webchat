@@ -88,10 +88,10 @@ def _inject_plugin_script_tags(html_content: str, plugin_basenames: list[str]) -
 def _index(request: Request) -> Response:
     index_path = STATIC_DIRECTORY / "index.html"
     if index_path.exists():
-        plugin_basename_to_path: dict[str, str] = request.app.state.plugin_basename_to_path
-        if plugin_basename_to_path:
+        javascript_plugin_basenames: list[str] = request.app.state.javascript_plugin_basenames
+        if javascript_plugin_basenames:
             html_content = index_path.read_text()
-            html_content = _inject_plugin_script_tags(html_content, list(plugin_basename_to_path.keys()))
+            html_content = _inject_plugin_script_tags(html_content, javascript_plugin_basenames)
             return HTMLResponse(html_content)
         return FileResponse(index_path, media_type="text/html")
     return HTMLResponse(_FRONTEND_NOT_BUILT_HTML)
@@ -272,22 +272,26 @@ def _stream_events(conversation_id: str, request: Request) -> Response:
     )
 
 
-def _serve_javascript_plugin(basename: str, request: Request) -> Response:
-    plugin_basename_to_path: dict[str, str] = request.app.state.plugin_basename_to_path
-    plugin_path_string = plugin_basename_to_path.get(basename)
-    if plugin_path_string is None:
-        error = ErrorResponse(detail=f"Plugin '{basename}' not found")
+def _serve_static_file(basename: str, request: Request) -> Response:
+    static_file_basename_to_path: dict[str, str] = request.app.state.static_file_basename_to_path
+    file_path_string = static_file_basename_to_path.get(basename)
+    if file_path_string is None:
+        error = ErrorResponse(detail=f"Static file '{basename}' not found")
         return JSONResponse(content=error.model_dump(), status_code=404)
-    plugin_path = Path(plugin_path_string)
-    if not plugin_path.is_file():
-        error = ErrorResponse(detail=f"Plugin file not found: {plugin_path}")
+    file_path = Path(file_path_string)
+    if not file_path.is_file():
+        error = ErrorResponse(detail=f"Static file not found on disk: {file_path}")
         return JSONResponse(content=error.model_dump(), status_code=404)
-    return FileResponse(plugin_path, media_type="application/javascript")
+    return FileResponse(file_path)
 
 
-def create_application(javascript_plugin_basename_to_path: dict[str, str] | None = None) -> FastAPI:
+def create_application(
+    static_file_basename_to_path: dict[str, str] | None = None,
+    javascript_plugin_basenames: list[str] | None = None,
+) -> FastAPI:
     application = FastAPI(lifespan=_lifespan)
-    application.state.plugin_basename_to_path = javascript_plugin_basename_to_path or {}
+    application.state.static_file_basename_to_path = static_file_basename_to_path or {}
+    application.state.javascript_plugin_basenames = javascript_plugin_basenames or []
 
     plugin_manager = get_plugin_manager()
     plugin_manager.hook.endpoint(app=application)
@@ -302,7 +306,7 @@ def create_application(javascript_plugin_basename_to_path: dict[str, str] | None
     application.add_api_route("/api/conversations", _create_conversation, methods=["POST"])
     application.add_api_route("/api/conversations/{conversation_id}/message", _send_message, methods=["POST"])
     application.add_api_route("/api/conversations/{conversation_id}/stream", _stream_events, methods=["GET"])
-    application.add_api_route("/plugins/{basename}", _serve_javascript_plugin, methods=["GET"])
+    application.add_api_route("/plugins/{basename}", _serve_static_file, methods=["GET"])
 
     assets_directory = STATIC_DIRECTORY / "assets"
     if assets_directory.is_dir():
