@@ -9,6 +9,9 @@ import {
 } from "../models/Response";
 import { getStreamingMessage, type StreamingMessage } from "../models/StreamingMessage";
 import { renderMarkdown } from "../markdown";
+import { MessageInput } from "./MessageInput";
+
+const SCROLL_BOTTOM_THRESHOLD_PX = 40;
 
 function scrollToHashTarget(): void {
   const hash = window.location.hash;
@@ -19,6 +22,14 @@ function scrollToHashTarget(): void {
   if (element) {
     element.scrollIntoView({ behavior: "smooth", block: "center" });
   }
+}
+
+function isNearBottom(element: HTMLElement): boolean {
+  return element.scrollHeight - element.scrollTop - element.clientHeight < SCROLL_BOTTOM_THRESHOLD_PX;
+}
+
+function scrollToBottom(element: HTMLElement): void {
+  element.scrollTop = element.scrollHeight;
 }
 
 function renderUserMessage(prompt: string): m.Vnode {
@@ -112,6 +123,7 @@ export function MessageList(): m.Component<{ conversationId: string | null }> {
   let currentConversationId: string | null = null;
   let pendingHashScroll = false;
   let previousStreamingMessage: StreamingMessage | null = null;
+  let userScrolledUp = false;
 
   async function fetchConversation(conversationId: string): Promise<void> {
     loading = true;
@@ -138,7 +150,14 @@ export function MessageList(): m.Component<{ conversationId: string | null }> {
     if (conversationId === currentConversationId) {
       return;
     }
+
+    const previousId = currentConversationId;
     currentConversationId = conversationId;
+
+    // Reset scroll state on conversation change
+    if (previousId !== null) {
+      userScrolledUp = window.location.hash.length > 1;
+    }
 
     // When a streaming message is already in progress for this conversation
     // (e.g. after creating a new conversation), skip the fetch — the data
@@ -150,6 +169,80 @@ export function MessageList(): m.Component<{ conversationId: string | null }> {
     }
 
     fetchConversation(conversationId);
+  }
+
+  function handleScrollEvent(event: Event): void {
+    const element = event.target as HTMLElement;
+    userScrolledUp = !isNearBottom(element);
+  }
+
+  function renderMainContent(conversationId: string | null): m.Vnode {
+    if (!conversationId) {
+      return m(
+        "div",
+        { class: "message-list-empty flex items-center justify-center h-full" },
+        m("p", { class: "text-text-secondary" }, "Select or start a conversation."),
+      );
+    }
+
+    ensureConversationLoaded(conversationId);
+
+    if (isConversationNotFoundInStore(conversationId)) {
+      return m("div", { class: "message-list-not-found flex flex-col items-center justify-center h-full gap-2" }, [
+        m("p", { class: "text-2xl font-semibold text-text-primary" }, "404"),
+        m("p", { class: "text-text-secondary" }, "Conversation not found."),
+      ]);
+    }
+
+    if (loading) {
+      return m(
+        "div",
+        { class: "message-list-loading flex items-center justify-center h-full" },
+        m("p", { class: "text-text-secondary" }, "Loading messages…"),
+      );
+    }
+
+    if (loadingError) {
+      return m(
+        "div",
+        { class: "message-list-error flex items-center justify-center h-full" },
+        m("p", { class: "text-red-500" }, `Error: ${loadingError}`),
+      );
+    }
+
+    const responses = getResponsesForConversation(conversationId);
+    const streamingMessage = getStreamingMessage(conversationId);
+
+    if (responses.length === 0 && streamingMessage === null) {
+      return m(
+        "div",
+        { class: "message-list-empty flex items-center justify-center h-full" },
+        m("p", { class: "text-text-secondary" }, "No messages in this conversation."),
+      );
+    }
+
+    const messageNodes: m.Vnode[] = [];
+    for (const responseItem of responses) {
+      if (responseItem.prompt !== null && responseItem.prompt !== "") {
+        messageNodes.push(renderUserMessage(responseItem.prompt));
+      }
+      messageNodes.push(renderAssistantMessage(responseItem));
+    }
+
+    if (streamingMessage !== null) {
+      messageNodes.push(renderUserMessage(streamingMessage.userPrompt));
+      if (streamingMessage.error !== null) {
+        messageNodes.push(renderErrorMessage(streamingMessage.error, streamingMessage.assistantContent));
+      } else {
+        messageNodes.push(renderStreamingAssistantMessage(streamingMessage.assistantContent));
+      }
+    }
+
+    return m(
+      "div",
+      { class: "message-list mx-auto w-full max-w-(--width-message-column) flex flex-col py-6" },
+      messageNodes,
+    );
   }
 
   return {
@@ -173,73 +266,37 @@ export function MessageList(): m.Component<{ conversationId: string | null }> {
 
     view(vnode) {
       const conversationId = vnode.attrs.conversationId;
+      const conversationIsNotFound = conversationId !== null && isConversationNotFoundInStore(conversationId);
+      const showFooter = conversationId === null || !conversationIsNotFound;
 
-      if (!conversationId) {
-        return m(
-          "div",
-          { class: "message-list-empty flex items-center justify-center h-full" },
-          m("p", { class: "text-text-secondary" }, "Select or start a conversation."),
-        );
-      }
+      const footerElement = showFooter
+        ? m(
+            "footer",
+            { class: "app-footer border-t border-border px-6 py-3", "data-slot": "conversation-footer" },
+            isSlotClaimed("conversation-footer") ? null : m(MessageInput, { conversationId }),
+          )
+        : null;
 
-      ensureConversationLoaded(conversationId);
-
-      if (isConversationNotFoundInStore(conversationId)) {
-        return m("div", { class: "message-list-not-found flex flex-col items-center justify-center h-full gap-2" }, [
-          m("p", { class: "text-2xl font-semibold text-text-primary" }, "404"),
-          m("p", { class: "text-text-secondary" }, "Conversation not found."),
-        ]);
-      }
-
-      if (loading) {
-        return m(
-          "div",
-          { class: "message-list-loading flex items-center justify-center h-full" },
-          m("p", { class: "text-text-secondary" }, "Loading messages…"),
-        );
-      }
-
-      if (loadingError) {
-        return m(
-          "div",
-          { class: "message-list-error flex items-center justify-center h-full" },
-          m("p", { class: "text-red-500" }, `Error: ${loadingError}`),
-        );
-      }
-
-      const responses = getResponsesForConversation(conversationId);
-      const streamingMessage = getStreamingMessage(conversationId);
-
-      if (responses.length === 0 && streamingMessage === null) {
-        return m(
-          "div",
-          { class: "message-list-empty flex items-center justify-center h-full" },
-          m("p", { class: "text-text-secondary" }, "No messages in this conversation."),
-        );
-      }
-
-      const messageNodes: m.Vnode[] = [];
-      for (const responseItem of responses) {
-        if (responseItem.prompt !== null && responseItem.prompt !== "") {
-          messageNodes.push(renderUserMessage(responseItem.prompt));
-        }
-        messageNodes.push(renderAssistantMessage(responseItem));
-      }
-
-      if (streamingMessage !== null) {
-        messageNodes.push(renderUserMessage(streamingMessage.userPrompt));
-        if (streamingMessage.error !== null) {
-          messageNodes.push(renderErrorMessage(streamingMessage.error, streamingMessage.assistantContent));
-        } else {
-          messageNodes.push(renderStreamingAssistantMessage(streamingMessage.assistantContent));
-        }
-      }
-
-      return m(
-        "div",
-        { class: "message-list mx-auto w-full max-w-(--width-message-column) flex flex-col py-6" },
-        messageNodes,
-      );
+      return m("div", { class: "app-content-wrapper flex-1 flex flex-col min-h-0" }, [
+        m(
+          "main",
+          {
+            class: "app-content flex-1 overflow-y-auto p-6",
+            "data-slot": "conversation-content",
+            onscroll: handleScrollEvent,
+            oncreate: (mainVnode: m.VnodeDOM) => {
+              scrollToBottom(mainVnode.dom as HTMLElement);
+            },
+            onupdate: (mainVnode: m.VnodeDOM) => {
+              if (!userScrolledUp) {
+                scrollToBottom(mainVnode.dom as HTMLElement);
+              }
+            },
+          },
+          isSlotClaimed("conversation-content") ? null : renderMainContent(conversationId),
+        ),
+        footerElement,
+      ]);
     },
   };
 }
