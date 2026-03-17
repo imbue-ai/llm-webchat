@@ -10,7 +10,7 @@ import {
   refetchCurrentConversation,
 } from "../views/MessageList";
 import { MessageInput, setSelectedModelId } from "../views/MessageInput";
-import { NewConversation } from "./NewConversation";
+import { NewConversation } from "../views/NewConversation";
 import { connectToStream, disconnectFromStream } from "./StreamingConnection";
 
 const SCROLL_BOTTOM_THRESHOLD_PX = 40;

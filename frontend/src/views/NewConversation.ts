@@ -1,17 +1,11 @@
 import m from "mithril";
-import { runHook } from "../hooks";
-import { fetchConversations } from "../models/Conversation";
-import { loadConversation } from "../views/MessageList";
+import { createConversationAndSend } from "../models/Conversation";
+import { loadConversation } from "./MessageList";
 import { startStreamingMessage } from "../models/StreamingMessage";
 import { getDefaultModelId, persistSelectedModelId } from "../models/Model";
-import { ModelSelector } from "../views/ModelSelector";
+import { ModelSelector } from "./ModelSelector";
 
 const MAX_TEXTAREA_HEIGHT_PX = 200;
-const CONVERSATION_NAME_LENGTH = 32;
-
-interface CreateConversationResponse {
-  id: string;
-}
 
 let messageText = "";
 let systemPromptText = "";
@@ -19,21 +13,13 @@ let systemPromptExpanded = false;
 let creating = false;
 let selectedModelId: string | null = null;
 
-function conversationName(text: string): string {
-  const collapsed = text.replace(/\s+/g, " ").trim();
-  if (collapsed.length <= CONVERSATION_NAME_LENGTH) {
-    return collapsed;
-  }
-  return collapsed.slice(0, CONVERSATION_NAME_LENGTH - 1) + "…";
-}
-
 function autoResizeTextarea(textarea: HTMLTextAreaElement): void {
   textarea.style.height = "auto";
   textarea.style.height = `${Math.min(textarea.scrollHeight, MAX_TEXTAREA_HEIGHT_PX)}px`;
   textarea.style.overflowY = textarea.scrollHeight > MAX_TEXTAREA_HEIGHT_PX ? "auto" : "hidden";
 }
 
-async function createConversationAndSend(): Promise<void> {
+async function handleCreateConversation(): Promise<void> {
   const trimmedMessage = messageText.trim();
   const modelId = selectedModelId;
   if (!trimmedMessage || !modelId || creating) {
@@ -43,26 +29,13 @@ async function createConversationAndSend(): Promise<void> {
   m.redraw();
 
   try {
-    const name = conversationName(trimmedMessage);
-    const response = await m.request<CreateConversationResponse>({
-      method: "POST",
-      url: "/api/conversations",
-      body: { name, model: modelId },
-    });
-    const conversationId = response.id;
+    const systemPrompt = systemPromptText;
 
-    runHook("post_conversation", {
-      id: conversationId,
-      name,
-      model: modelId,
-    });
-
-    const trimmedSystemPrompt = systemPromptText.trim();
     messageText = "";
     systemPromptText = "";
     systemPromptExpanded = false;
 
-    await fetchConversations();
+    const conversationId = await createConversationAndSend(trimmedMessage, modelId, systemPrompt);
 
     // Pre-initialize loadConversation so that when App.view() re-renders
     // after the route change, its call to loadConversation() will hit
@@ -77,32 +50,6 @@ async function createConversationAndSend(): Promise<void> {
     // connection is established (so we don't rely on catching the
     // server's user_message event).
     startStreamingMessage(trimmedMessage);
-
-    // POST the message directly instead of going through sendMessage(),
-    // which would call clearStreamingMessage() and interfere with the
-    // streaming state we just set up.
-    const messageBody: Record<string, string> = { message: trimmedMessage, model: modelId };
-    if (trimmedSystemPrompt) {
-      messageBody.system_prompt = trimmedSystemPrompt;
-    }
-
-    const postMessageHookData = runHook("post_conversation_message", {
-      conversationId,
-      message: trimmedMessage,
-      model: modelId,
-      systemPrompt: trimmedSystemPrompt || undefined,
-    });
-
-    await m.request({
-      method: "POST",
-      url: "/api/conversations/:conversationId/message",
-      params: { conversationId },
-      body: {
-        message: postMessageHookData.message,
-        model: postMessageHookData.model,
-        ...(postMessageHookData.systemPrompt ? { system_prompt: postMessageHookData.systemPrompt } : {}),
-      },
-    });
   } finally {
     creating = false;
     m.redraw();
@@ -118,7 +65,7 @@ export const NewConversation: m.Component = {
     function handleKeydown(event: KeyboardEvent): void {
       if (event.key === "Enter" && !event.shiftKey) {
         event.preventDefault();
-        createConversationAndSend();
+        handleCreateConversation();
       }
     }
 
@@ -177,7 +124,7 @@ export const NewConversation: m.Component = {
                 creating ? "bg-primary/50 cursor-not-allowed" : "bg-primary hover:bg-primary-hover cursor-pointer",
               ].join(" "),
               disabled: creating || !messageText.trim(),
-              onclick: createConversationAndSend,
+              onclick: handleCreateConversation,
             },
             creating ? "Creating…" : "Send",
           ),
