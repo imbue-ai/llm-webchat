@@ -1,12 +1,16 @@
 import queue
 import subprocess
+from collections.abc import Iterator
+from pathlib import Path
 from unittest.mock import MagicMock
 from unittest.mock import patch
 
+import pytest
 import sqlite_utils
 from fastapi import FastAPI
 from starlette.testclient import TestClient
 
+from llm_webchat.server import create_application
 from tests.helpers import insert_conversations
 from tests.helpers import insert_responses
 
@@ -353,3 +357,106 @@ def test_list_models(client: TestClient) -> None:
     assert len(data["models"]) == 2
     assert data["models"][0]["model_id"] == "gpt-4"
     assert data["models"][1]["model_id"] == "claude-3-opus"
+
+
+@pytest.fixture()
+def plugin_files(tmp_path: Path) -> list[Path]:
+    plugin_one = tmp_path / "plugin_one.js"
+    plugin_one.write_text('window.$llm.on("ready", () => console.log("plugin one"));')
+    plugin_two = tmp_path / "plugin_two.js"
+    plugin_two.write_text('window.$llm.on("ready", () => console.log("plugin two"));')
+    return [plugin_one, plugin_two]
+
+
+@pytest.fixture()
+def client_with_plugins(llm_user_path: Path, plugin_files: list[Path]) -> Iterator[TestClient]:
+    application = create_application(
+        javascript_plugin_basename_to_path={path.name: str(path) for path in plugin_files},
+    )
+    with TestClient(application) as test_client:
+        yield test_client
+
+
+def test_serve_javascript_plugin_by_basename(client_with_plugins: TestClient, plugin_files: list[Path]) -> None:
+    response = client_with_plugins.get("/plugins/plugin_one.js")
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith("application/javascript")
+    assert response.text == plugin_files[0].read_text()
+
+    response = client_with_plugins.get("/plugins/plugin_two.js")
+    assert response.status_code == 200
+    assert response.text == plugin_files[1].read_text()
+
+
+def test_serve_javascript_plugin_unknown_basename(client_with_plugins: TestClient) -> None:
+    response = client_with_plugins.get("/plugins/nonexistent.js")
+    assert response.status_code == 404
+
+
+def test_serve_javascript_plugin_no_plugins_configured(client: TestClient) -> None:
+    response = client.get("/plugins/anything.js")
+    assert response.status_code == 404
+
+
+def _make_static_directory_with_index_html(base_path: Path) -> Path:
+    static_directory = base_path / "static"
+    static_directory.mkdir()
+    index_html = static_directory / "index.html"
+    index_html.write_text('<html><head></head><body><div id="app"></div></body></html>')
+    return static_directory
+
+
+def test_index_injects_plugin_script_tags(client_with_plugins: TestClient, plugin_files: list[Path]) -> None:
+    import llm_webchat.server as server_module
+
+    original_static = server_module.STATIC_DIRECTORY
+    try:
+        server_module.STATIC_DIRECTORY = _make_static_directory_with_index_html(plugin_files[0].parent)
+
+        response = client_with_plugins.get("/")
+        assert response.status_code == 200
+        assert '<script src="/plugins/plugin_one.js"></script>' in response.text
+        assert '<script src="/plugins/plugin_two.js"></script>' in response.text
+
+        body = response.text
+        plugin_one_position = body.index("plugin_one.js")
+        plugin_two_position = body.index("plugin_two.js")
+        closing_body_position = body.index("</body>")
+        assert plugin_one_position < plugin_two_position < closing_body_position
+    finally:
+        server_module.STATIC_DIRECTORY = original_static
+
+
+def test_index_without_plugins_has_no_plugin_script_tags(client: TestClient, tmp_path: Path) -> None:
+    import llm_webchat.server as server_module
+
+    original_static = server_module.STATIC_DIRECTORY
+    try:
+        server_module.STATIC_DIRECTORY = _make_static_directory_with_index_html(tmp_path)
+
+        response = client.get("/")
+        assert response.status_code == 200
+        assert "/plugins/" not in response.text
+    finally:
+        server_module.STATIC_DIRECTORY = original_static
+
+
+def test_duplicate_plugin_basenames_raises_error(tmp_path: Path) -> None:
+    from pydantic import ValidationError
+
+    from llm_webchat.config import Config
+
+    dir_one = tmp_path / "a"
+    dir_one.mkdir()
+    dir_two = tmp_path / "b"
+    dir_two.mkdir()
+    (dir_one / "plugin.js").write_text("")
+    (dir_two / "plugin.js").write_text("")
+
+    with pytest.raises(ValidationError, match="Duplicate plugin basename 'plugin.js'"):
+        Config(
+            llm_webchat_javascript_plugins=[
+                str(dir_one / "plugin.js"),
+                str(dir_two / "plugin.js"),
+            ],
+        )
