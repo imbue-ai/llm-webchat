@@ -10,7 +10,7 @@ import {
   refetchCurrentConversation,
 } from "./MessageList";
 import { MessageInput } from "./MessageInput";
-import { setSelectedModelId } from "./ModelSelector";
+import { setSelectedModelId } from "../models/Model";
 import { NewConversation } from "./NewConversation";
 import { connectToStream, disconnectFromStream } from "./StreamingConnection";
 

@@ -1,7 +1,8 @@
 import m from "mithril";
 import { runHook } from "../llm-api";
 import { clearStreamingMessage, isStreaming } from "./MessageList";
-import { ModelSelector, getSelectedModelId } from "./ModelSelector";
+import { getSelectedModelId } from "../models/Model";
+import { ModelSelector } from "../views/ModelSelector";
 
 const MAX_TEXTAREA_HEIGHT_PX = 200;
 

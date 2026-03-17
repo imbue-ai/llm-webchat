@@ -1,17 +1,16 @@
 import m from "mithril";
-import { setModelsStore } from "../llm-api";
 
 const LOCAL_STORAGE_KEY = "llm-webchat-selected-model";
 
-interface ModelInfo {
+export interface Model {
   model_id: string;
 }
 
 interface ModelListResponse {
-  models: ModelInfo[];
+  models: Model[];
 }
 
-let models: ModelInfo[] = [];
+let models: Model[] = [];
 let modelsLoaded = false;
 let selectedModelId: string | null = null;
 
@@ -41,7 +40,12 @@ export function setSelectedModelId(modelId: string): void {
   }
 }
 
-export function getModels(): ModelInfo[] {
+export function selectModelId(modelId: string): void {
+  selectedModelId = modelId;
+  persistModelId(modelId);
+}
+
+export function getModels(): Model[] {
   return models;
 }
 
@@ -61,7 +65,6 @@ export async function fetchModels(): Promise<void> {
     });
     models = response.models;
     modelsLoaded = true;
-    setModelsStore(models);
 
     const persisted = loadPersistedModelId();
     if (persisted && models.some((model) => model.model_id === persisted)) {
@@ -73,41 +76,3 @@ export async function fetchModels(): Promise<void> {
     modelsLoaded = true;
   }
 }
-
-export const ModelSelector: m.Component = {
-  oninit() {
-    fetchModels();
-  },
-  view() {
-    if (!modelsLoaded || models.length === 0) {
-      return null;
-    }
-
-    return m("div", { class: "model-selector-wrapper relative inline-block" }, [
-      m(
-        "select",
-        {
-          class: "model-selector-native absolute inset-0 w-full h-full opacity-0 cursor-pointer",
-          value: selectedModelId ?? "",
-          onchange: (event: Event) => {
-            const select = event.target as HTMLSelectElement;
-            selectedModelId = select.value;
-            persistModelId(selectedModelId);
-          },
-        },
-        models.map((model) => m("option", { key: model.model_id, value: model.model_id }, model.model_id)),
-      ),
-      m(
-        "span",
-        {
-          class:
-            "model-selector-label inline-flex items-center gap-1 text-xs text-text-secondary hover:text-text-primary transition-colors cursor-pointer select-none",
-        },
-        [
-          m("span", { class: "model-selector-model-name" }, selectedModelId ?? ""),
-          m("span", { class: "model-selector-chevron text-[10px] leading-none" }, "▾"),
-        ],
-      ),
-    ]);
-  },
-};

@@ -1,5 +1,7 @@
 import type { Conversation } from "./models/Conversation";
 import { getConversations } from "./models/Conversation";
+import type { Model } from "./models/Model";
+import { getModels } from "./models/Model";
 
 interface ResponseItem {
   id: string;
@@ -25,10 +27,6 @@ interface MessageData {
   durationMs: number | null;
   inputTokens: number | null;
   outputTokens: number | null;
-}
-
-interface ModelInfo {
-  model_id: string;
 }
 
 interface GetConversationsHookData {
@@ -86,7 +84,6 @@ const hookListeners: Record<string, AnyHookCallback[]> = {};
 const claimedSlots: Set<string> = new Set();
 
 const responsesStore: Record<string, ResponseItem[]> = {};
-let modelsStore: ModelInfo[] = [];
 
 function responseItemToMessageData(item: ResponseItem): MessageData {
   return {
@@ -140,16 +137,12 @@ export function setResponsesStore(conversationId: string, responses: ResponseIte
   responsesStore[conversationId] = responses;
 }
 
-export function setModelsStore(models: ModelInfo[]): void {
-  modelsStore = models;
-}
-
 interface LlmApi {
   claim(slotName: string): boolean;
   getMessage(messageId: string): MessageData | null;
   getConversations(): Conversation[];
   getConversation(conversationId: string): Conversation | null;
-  getModels(): ModelInfo[];
+  getModels(): Model[];
   on<K extends HookName>(eventName: K, callback: HookCallback<HookDataMap[K]>): void;
 }
 
@@ -183,8 +176,8 @@ const llmApi: LlmApi = {
     return getConversations().find((conversation) => conversation.id === conversationId) ?? null;
   },
 
-  getModels(): ModelInfo[] {
-    return [...modelsStore];
+  getModels(): Model[] {
+    return [...getModels()];
   },
 
   on<K extends HookName>(eventName: K, callback: HookCallback<HookDataMap[K]>): void {
@@ -201,7 +194,7 @@ export type {
   Conversation,
   ResponseItem,
   MessageData,
-  ModelInfo,
+  Model,
   GetConversationsHookData,
   GetConversationHookData,
   PostConversationHookData,

@@ -2,7 +2,8 @@ import m from "mithril";
 import { runHook } from "../llm-api";
 import { fetchConversations } from "../models/Conversation";
 import { fetchResponses, startStreamingMessage } from "./MessageList";
-import { ModelSelector, getSelectedModelId } from "./ModelSelector";
+import { getSelectedModelId } from "../models/Model";
+import { ModelSelector } from "../views/ModelSelector";
 
 const MAX_TEXTAREA_HEIGHT_PX = 200;
 const CONVERSATION_NAME_LENGTH = 32;
