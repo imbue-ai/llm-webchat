@@ -29,7 +29,7 @@ def list_conversations(
     if config is None:
         config = load_config()
 
-    allowed_ids = config.llm_conversation_ids
+    allowed_ids = config.llm_webchat_conversation_ids
 
     if allowed_ids is not None:
         placeholders = ",".join("?" for _ in allowed_ids)

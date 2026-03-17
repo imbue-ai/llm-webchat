@@ -66,7 +66,7 @@ def test_list_conversations_ordered_most_recent_first(test_database: sqlite_util
 def test_list_conversations_with_allowed_ids(
     monkeypatch: pytest.MonkeyPatch, test_database: sqlite_utils.Database
 ) -> None:
-    monkeypatch.setenv("LLM_CONVERSATION_IDS", "abc,ghi")
+    monkeypatch.setenv("LLM_WEBCHAT_CONVERSATION_IDS", "abc,ghi")
     insert_conversations(
         test_database,
         [

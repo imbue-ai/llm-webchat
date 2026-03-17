@@ -78,7 +78,7 @@ Static files are served from `/static`. The only exception is `index.html` which
 
 The following environment variables are recognized:
 
-- `LLM_CONVERSATION_IDS`: a comma-separated list. If provided, only these conversations are ever returned.
+- `LLM_WEBCHAT_CONVERSATION_IDS`: a comma-separated list. If provided, only these conversations are ever returned.
 - `LLM_WEBCHAT_JAVASCRIPT_PLUGINS`: a comma separated list of .js files containing frontend plugins (see below).
 - `LLM_WEBCHAT_STATIC_PATHS`: a comma separated list of additional paths to resources that should be served from under `/static`. Files and directories are both accepted.
 - `LLM_WEBCHAT_HOST`: the host address the server binds to. Defaults to `127.0.0.1`.
