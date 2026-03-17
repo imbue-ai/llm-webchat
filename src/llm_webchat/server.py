@@ -20,6 +20,7 @@ from fastapi.responses import Response
 from fastapi.responses import StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
+from llm_webchat.config import Config
 from llm_webchat.database import conversation_exists
 from llm_webchat.database import create_conversation
 from llm_webchat.database import list_conversations
@@ -88,10 +89,10 @@ def _inject_plugin_script_tags(html_content: str, plugin_basenames: list[str]) -
 def _index(request: Request) -> Response:
     index_path = STATIC_DIRECTORY / "index.html"
     if index_path.exists():
-        javascript_plugin_basenames: list[str] = request.app.state.javascript_plugin_basenames
-        if javascript_plugin_basenames:
+        config: Config = request.app.state.config
+        if config.javascript_plugin_basenames:
             html_content = index_path.read_text()
-            html_content = _inject_plugin_script_tags(html_content, javascript_plugin_basenames)
+            html_content = _inject_plugin_script_tags(html_content, config.javascript_plugin_basenames)
             return HTMLResponse(html_content)
         return FileResponse(index_path, media_type="text/html")
     return HTMLResponse(_FRONTEND_NOT_BUILT_HTML)
@@ -273,8 +274,8 @@ def _stream_events(conversation_id: str, request: Request) -> Response:
 
 
 def _serve_static_file(basename: str, request: Request) -> Response:
-    static_file_basename_to_path: dict[str, str] = request.app.state.static_file_basename_to_path
-    file_path_string = static_file_basename_to_path.get(basename)
+    config: Config = request.app.state.config
+    file_path_string = config.static_file_basename_to_path.get(basename)
     if file_path_string is None:
         error = ErrorResponse(detail=f"Static file '{basename}' not found")
         return JSONResponse(content=error.model_dump(), status_code=404)
@@ -285,13 +286,9 @@ def _serve_static_file(basename: str, request: Request) -> Response:
     return FileResponse(file_path)
 
 
-def create_application(
-    static_file_basename_to_path: dict[str, str] | None = None,
-    javascript_plugin_basenames: list[str] | None = None,
-) -> FastAPI:
+def create_application(config: Config | None = None) -> FastAPI:
     application = FastAPI(lifespan=_lifespan)
-    application.state.static_file_basename_to_path = static_file_basename_to_path or {}
-    application.state.javascript_plugin_basenames = javascript_plugin_basenames or []
+    application.state.config = config or Config()
 
     plugin_manager = get_plugin_manager()
     plugin_manager.hook.endpoint(app=application)

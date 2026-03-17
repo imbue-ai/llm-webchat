@@ -10,6 +10,7 @@ import sqlite_utils
 from fastapi import FastAPI
 from starlette.testclient import TestClient
 
+from llm_webchat.config import Config
 from llm_webchat.server import create_application
 from tests.helpers import insert_conversations
 from tests.helpers import insert_responses
@@ -371,8 +372,7 @@ def plugin_files(tmp_path: Path) -> list[Path]:
 @pytest.fixture()
 def client_with_plugins(llm_user_path: Path, plugin_files: list[Path]) -> Iterator[TestClient]:
     application = create_application(
-        static_file_basename_to_path={path.name: str(path) for path in plugin_files},
-        javascript_plugin_basenames=[path.name for path in plugin_files],
+        Config(llm_webchat_javascript_plugins=[str(path) for path in plugin_files]),
     )
     with TestClient(application) as test_client:
         yield test_client
@@ -494,7 +494,7 @@ def static_asset_files(tmp_path: Path) -> list[Path]:
 @pytest.fixture()
 def client_with_static_paths(llm_user_path: Path, static_asset_files: list[Path]) -> Iterator[TestClient]:
     application = create_application(
-        static_file_basename_to_path={path.name: str(path) for path in static_asset_files},
+        Config(llm_webchat_static_paths=[str(path) for path in static_asset_files]),
     )
     with TestClient(application) as test_client:
         yield test_client
@@ -520,7 +520,7 @@ def test_static_paths_not_injected_as_script_tags(
     try:
         server_module.STATIC_DIRECTORY = _make_static_directory_with_index_html(tmp_path / "frontend")
         application = create_application(
-            static_file_basename_to_path={path.name: str(path) for path in static_asset_files},
+            Config(llm_webchat_static_paths=[str(path) for path in static_asset_files]),
         )
         with TestClient(application) as test_client:
             response = test_client.get("/")
@@ -535,13 +535,14 @@ def test_mixed_plugins_and_static_paths(
 ) -> None:
     import llm_webchat.server as server_module
 
-    all_files = plugin_files + static_asset_files
     original_static = server_module.STATIC_DIRECTORY
     try:
         server_module.STATIC_DIRECTORY = _make_static_directory_with_index_html(tmp_path / "frontend")
         application = create_application(
-            static_file_basename_to_path={path.name: str(path) for path in all_files},
-            javascript_plugin_basenames=[path.name for path in plugin_files],
+            Config(
+                llm_webchat_javascript_plugins=[str(path) for path in plugin_files],
+                llm_webchat_static_paths=[str(path) for path in static_asset_files],
+            ),
         )
         with TestClient(application) as test_client:
             # JS plugins are served

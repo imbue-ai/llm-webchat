@@ -15,8 +15,5 @@ def register_commands(cli: click.Group) -> None:
         import uvicorn
 
         config = load_config()
-        application = create_application(
-            static_file_basename_to_path=config.static_file_basename_to_path,
-            javascript_plugin_basenames=config.javascript_plugin_basenames,
-        )
+        application = create_application(config)
         uvicorn.run(application, host=config.llm_webchat_host, port=config.llm_webchat_port)
