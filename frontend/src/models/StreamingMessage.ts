@@ -1,4 +1,5 @@
 export interface StreamingMessage {
+  conversationId: string;
   userPrompt: string;
   assistantContent: string;
   finalized: boolean;
@@ -7,12 +8,16 @@ export interface StreamingMessage {
 
 let streamingMessage: StreamingMessage | null = null;
 
-export function getStreamingMessage(): StreamingMessage | null {
-  return streamingMessage;
+export function getStreamingMessage(conversationId: string): StreamingMessage | null {
+  if (streamingMessage !== null && streamingMessage.conversationId === conversationId) {
+    return streamingMessage;
+  }
+  return null;
 }
 
-export function startStreamingMessage(userPrompt: string): void {
+export function startStreamingMessage(conversationId: string, userPrompt: string): void {
   streamingMessage = {
+    conversationId,
     userPrompt,
     assistantContent: "",
     finalized: false,

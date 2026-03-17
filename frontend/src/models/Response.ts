@@ -26,6 +26,11 @@ interface ResponseListResponse {
 }
 
 const responses: Record<string, ResponseItem[]> = {};
+const notFoundConversationIds = new Set<string>();
+
+export function isConversationNotFound(conversationId: string): boolean {
+  return notFoundConversationIds.has(conversationId);
+}
 
 export function getResponsesForConversation(conversationId: string): ResponseItem[] {
   return responses[conversationId] ?? [];
@@ -45,6 +50,8 @@ export function getLastResponseModel(conversationId: string): string | null {
 }
 
 export async function fetchResponses(conversationId: string): Promise<ResponseItem[]> {
+  notFoundConversationIds.delete(conversationId);
+
   const result = await m
     .request<ResponseListResponse>({
       method: "GET",
@@ -54,6 +61,7 @@ export async function fetchResponses(conversationId: string): Promise<ResponseIt
     .catch((error) => {
       const requestError = error as { code?: number; message?: string };
       if (requestError.code === 404) {
+        notFoundConversationIds.add(conversationId);
         throw new ConversationNotFoundError(conversationId);
       }
       throw error;

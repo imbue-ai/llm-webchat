@@ -1,14 +1,9 @@
 import m from "mithril";
 import { isSlotClaimed } from "../slots";
 import { getSelectedConversationId, navigateToNewConversation } from "../models/Conversation";
+import { getLastResponseModel, isConversationNotFound } from "../models/Response";
 import { ConversationSelector } from "../views/ConversationSelector";
-import {
-  MessageList,
-  loadConversation,
-  getLastResponseModel,
-  isConversationNotFound,
-  refetchCurrentConversation,
-} from "../views/MessageList";
+import { MessageList } from "../views/MessageList";
 import { MessageInput, setSelectedModelId } from "../views/MessageInput";
 import { NewConversation } from "../views/NewConversation";
 import { connectToStream, disconnectFromStream } from "./StreamingConnection";
@@ -62,8 +57,7 @@ export const App: m.Component = {
     const isNewConversationRoute = m.route.get() === "/new";
 
     if (selectedConversationId) {
-      loadConversation(selectedConversationId);
-      if (!isConversationNotFound()) {
+      if (!isConversationNotFound(selectedConversationId)) {
         connectToStream(selectedConversationId);
       } else {
         disconnectFromStream();
@@ -75,7 +69,6 @@ export const App: m.Component = {
     const conversationChanged = previousConversationId !== selectedConversationId;
     if (conversationChanged) {
       if (previousConversationId !== null) {
-        refetchCurrentConversation();
         modelSyncedForConversation = null;
       }
       userScrolledUp = window.location.hash.length > 1;
@@ -83,7 +76,7 @@ export const App: m.Component = {
     previousConversationId = selectedConversationId;
 
     if (selectedConversationId && modelSyncedForConversation !== selectedConversationId) {
-      const lastModel = getLastResponseModel();
+      const lastModel = getLastResponseModel(selectedConversationId);
       if (lastModel) {
         setSelectedModelId(lastModel);
         modelSyncedForConversation = selectedConversationId;
@@ -120,7 +113,8 @@ export const App: m.Component = {
           isSlotClaimed("conversation-content") ? null : [m(MessageList, { conversationId: selectedConversationId })],
         );
 
-    const showConversationFooter = !isNewConversationRoute && !isConversationNotFound();
+    const conversationIsNotFound = selectedConversationId !== null && isConversationNotFound(selectedConversationId);
+    const showConversationFooter = !isNewConversationRoute && !conversationIsNotFound;
     const showNewConversationFooter = isNewConversationRoute;
 
     let footerElement: m.Vnode | null = null;

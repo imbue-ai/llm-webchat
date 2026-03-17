@@ -1,6 +1,5 @@
 import m from "mithril";
 import { createConversationAndSend } from "../models/Conversation";
-import { loadConversation } from "./MessageList";
 import { startStreamingMessage } from "../models/StreamingMessage";
 import { getDefaultModelId, persistSelectedModelId } from "../models/Model";
 import { ModelSelector } from "./ModelSelector";
@@ -37,19 +36,16 @@ async function handleCreateConversation(): Promise<void> {
 
     const conversationId = await createConversationAndSend(trimmedMessage, modelId, systemPrompt);
 
-    // Pre-initialize loadConversation so that when App.view() re-renders
-    // after the route change, its call to loadConversation() will hit
-    // the "already loaded" guard and won't clear streamingMessage.
-    await loadConversation(conversationId);
+    // Set streaming state BEFORE navigating so that when MessageList
+    // first renders for this conversation, it sees an active streaming
+    // message and skips the initial fetch (the data will be fetched
+    // once streaming finalises).
+    startStreamingMessage(conversationId, trimmedMessage);
 
     // Navigate to the conversation page. This schedules a mithril
-    // redraw that will call connectToStream() via App.view().
+    // redraw that will render MessageList and call connectToStream()
+    // via App.view().
     m.route.set("/conversations/:conversationId", { conversationId });
-
-    // Show the user message bubble immediately, before the SSE
-    // connection is established (so we don't rely on catching the
-    // server's user_message event).
-    startStreamingMessage(trimmedMessage);
   } finally {
     creating = false;
     m.redraw();

@@ -4,65 +4,11 @@ import {
   ConversationNotFoundError,
   fetchResponses as fetchResponsesFromApi,
   getResponsesForConversation,
+  isConversationNotFound as isConversationNotFoundInStore,
   type ResponseItem,
-  getLastResponseModel as getLastResponseModelFromStore,
 } from "../models/Response";
-import { getStreamingMessage } from "../models/StreamingMessage";
+import { getStreamingMessage, type StreamingMessage } from "../models/StreamingMessage";
 import { renderMarkdown } from "../components/renderMarkdown";
-
-let loading = false;
-let loadingError: string | null = null;
-let conversationNotFound = false;
-let currentConversationId: string | null = null;
-let pendingHashScroll = false;
-let previousStreamingMessage: unknown = null;
-
-export function isConversationNotFound(): boolean {
-  return conversationNotFound;
-}
-
-export function getLastResponseModel(): string | null {
-  if (currentConversationId === null) {
-    return null;
-  }
-  return getLastResponseModelFromStore(currentConversationId);
-}
-
-export function refetchCurrentConversation(): void {
-  const conversationId = currentConversationId;
-  if (conversationId !== null) {
-    currentConversationId = null;
-    loadConversation(conversationId);
-  }
-}
-
-export async function loadConversation(conversationId: string): Promise<void> {
-  if (conversationId === currentConversationId) {
-    return;
-  }
-  currentConversationId = conversationId;
-  loading = true;
-  loadingError = null;
-  conversationNotFound = false;
-  pendingHashScroll = window.location.hash.length > 1;
-
-  try {
-    await fetchResponsesFromApi(conversationId);
-    if (conversationId === currentConversationId) {
-      loading = false;
-      loadingError = null;
-    }
-  } catch (error) {
-    if (conversationId === currentConversationId) {
-      loading = false;
-      if (error instanceof ConversationNotFoundError) {
-        conversationNotFound = true;
-      } else {
-        loadingError = (error as Error).message ?? String(error);
-      }
-    }
-  }
-}
 
 function scrollToHashTarget(): void {
   const hash = window.location.hash;
@@ -72,7 +18,6 @@ function scrollToHashTarget(): void {
   const element = document.getElementById(hash.slice(1));
   if (element) {
     element.scrollIntoView({ behavior: "smooth", block: "center" });
-    pendingHashScroll = false;
   }
 }
 
@@ -161,86 +106,140 @@ function renderErrorMessage(errorContent: string, partialAssistantContent: strin
   return m("div", { class: "message message-error mb-6" }, children);
 }
 
-export const MessageList: m.Component<{ conversationId: string | null }> = {
-  onupdate() {
-    if (pendingHashScroll && !loading) {
-      scrollToHashTarget();
-    }
+export function MessageList(): m.Component<{ conversationId: string | null }> {
+  let loading = false;
+  let loadingError: string | null = null;
+  let currentConversationId: string | null = null;
+  let pendingHashScroll = false;
+  let previousStreamingMessage: StreamingMessage | null = null;
 
-    // When streaming finishes (message goes from non-null to null without
-    // error), refetch to pick up the persisted response from the server.
-    const currentStreamingMessage = getStreamingMessage();
-    if (previousStreamingMessage !== null && currentStreamingMessage === null) {
-      refetchCurrentConversation();
-    }
-    previousStreamingMessage = currentStreamingMessage;
-  },
-  view(vnode) {
-    const conversationId = vnode.attrs.conversationId;
+  async function fetchConversation(conversationId: string): Promise<void> {
+    loading = true;
+    loadingError = null;
+    pendingHashScroll = window.location.hash.length > 1;
 
-    if (!conversationId) {
-      return m(
-        "div",
-        { class: "message-list-empty flex items-center justify-center h-full" },
-        m("p", { class: "text-text-secondary" }, "Select or start a conversation."),
-      );
-    }
-
-    if (conversationNotFound) {
-      return m("div", { class: "message-list-not-found flex flex-col items-center justify-center h-full gap-2" }, [
-        m("p", { class: "text-2xl font-semibold text-text-primary" }, "404"),
-        m("p", { class: "text-text-secondary" }, "Conversation not found."),
-      ]);
-    }
-
-    if (loading) {
-      return m(
-        "div",
-        { class: "message-list-loading flex items-center justify-center h-full" },
-        m("p", { class: "text-text-secondary" }, "Loading messages…"),
-      );
-    }
-
-    if (loadingError) {
-      return m(
-        "div",
-        { class: "message-list-error flex items-center justify-center h-full" },
-        m("p", { class: "text-red-500" }, `Error: ${loadingError}`),
-      );
-    }
-
-    const responses = getResponsesForConversation(conversationId);
-    const streamingMessage = getStreamingMessage();
-
-    if (responses.length === 0 && streamingMessage === null) {
-      return m(
-        "div",
-        { class: "message-list-empty flex items-center justify-center h-full" },
-        m("p", { class: "text-text-secondary" }, "No messages in this conversation."),
-      );
-    }
-
-    const messageNodes: m.Vnode[] = [];
-    for (const responseItem of responses) {
-      if (responseItem.prompt !== null && responseItem.prompt !== "") {
-        messageNodes.push(renderUserMessage(responseItem.prompt));
+    try {
+      await fetchResponsesFromApi(conversationId);
+      if (conversationId === currentConversationId) {
+        loading = false;
+        loadingError = null;
       }
-      messageNodes.push(renderAssistantMessage(responseItem));
-    }
-
-    if (streamingMessage !== null) {
-      messageNodes.push(renderUserMessage(streamingMessage.userPrompt));
-      if (streamingMessage.error !== null) {
-        messageNodes.push(renderErrorMessage(streamingMessage.error, streamingMessage.assistantContent));
-      } else {
-        messageNodes.push(renderStreamingAssistantMessage(streamingMessage.assistantContent));
+    } catch (error) {
+      if (conversationId === currentConversationId) {
+        loading = false;
+        if (!(error instanceof ConversationNotFoundError)) {
+          loadingError = (error as Error).message ?? String(error);
+        }
       }
     }
+  }
 
-    return m(
-      "div",
-      { class: "message-list mx-auto w-full max-w-(--width-message-column) flex flex-col py-6" },
-      messageNodes,
-    );
-  },
-};
+  function ensureConversationLoaded(conversationId: string): void {
+    if (conversationId === currentConversationId) {
+      return;
+    }
+    currentConversationId = conversationId;
+
+    // When a streaming message is already in progress for this conversation
+    // (e.g. after creating a new conversation), skip the fetch — the data
+    // will be fetched once streaming finalises.
+    if (getStreamingMessage(conversationId) !== null) {
+      loading = false;
+      loadingError = null;
+      return;
+    }
+
+    fetchConversation(conversationId);
+  }
+
+  return {
+    onupdate() {
+      if (pendingHashScroll && !loading) {
+        scrollToHashTarget();
+        pendingHashScroll = false;
+      }
+
+      // When streaming finishes (message goes from non-null to null without
+      // error), refetch to pick up the persisted response from the server.
+      const currentStreamingMessage =
+        currentConversationId !== null ? getStreamingMessage(currentConversationId) : null;
+      if (previousStreamingMessage !== null && currentStreamingMessage === null) {
+        if (currentConversationId !== null) {
+          fetchConversation(currentConversationId);
+        }
+      }
+      previousStreamingMessage = currentStreamingMessage;
+    },
+
+    view(vnode) {
+      const conversationId = vnode.attrs.conversationId;
+
+      if (!conversationId) {
+        return m(
+          "div",
+          { class: "message-list-empty flex items-center justify-center h-full" },
+          m("p", { class: "text-text-secondary" }, "Select or start a conversation."),
+        );
+      }
+
+      ensureConversationLoaded(conversationId);
+
+      if (isConversationNotFoundInStore(conversationId)) {
+        return m("div", { class: "message-list-not-found flex flex-col items-center justify-center h-full gap-2" }, [
+          m("p", { class: "text-2xl font-semibold text-text-primary" }, "404"),
+          m("p", { class: "text-text-secondary" }, "Conversation not found."),
+        ]);
+      }
+
+      if (loading) {
+        return m(
+          "div",
+          { class: "message-list-loading flex items-center justify-center h-full" },
+          m("p", { class: "text-text-secondary" }, "Loading messages…"),
+        );
+      }
+
+      if (loadingError) {
+        return m(
+          "div",
+          { class: "message-list-error flex items-center justify-center h-full" },
+          m("p", { class: "text-red-500" }, `Error: ${loadingError}`),
+        );
+      }
+
+      const responses = getResponsesForConversation(conversationId);
+      const streamingMessage = getStreamingMessage(conversationId);
+
+      if (responses.length === 0 && streamingMessage === null) {
+        return m(
+          "div",
+          { class: "message-list-empty flex items-center justify-center h-full" },
+          m("p", { class: "text-text-secondary" }, "No messages in this conversation."),
+        );
+      }
+
+      const messageNodes: m.Vnode[] = [];
+      for (const responseItem of responses) {
+        if (responseItem.prompt !== null && responseItem.prompt !== "") {
+          messageNodes.push(renderUserMessage(responseItem.prompt));
+        }
+        messageNodes.push(renderAssistantMessage(responseItem));
+      }
+
+      if (streamingMessage !== null) {
+        messageNodes.push(renderUserMessage(streamingMessage.userPrompt));
+        if (streamingMessage.error !== null) {
+          messageNodes.push(renderErrorMessage(streamingMessage.error, streamingMessage.assistantContent));
+        } else {
+          messageNodes.push(renderStreamingAssistantMessage(streamingMessage.assistantContent));
+        }
+      }
+
+      return m(
+        "div",
+        { class: "message-list mx-auto w-full max-w-(--width-message-column) flex flex-col py-6" },
+        messageNodes,
+      );
+    },
+  };
+}

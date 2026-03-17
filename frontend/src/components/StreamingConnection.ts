@@ -2,6 +2,7 @@ import m from "mithril";
 import { runHook } from "../hooks";
 import {
   appendStreamingDelta,
+  clearStreamingMessage,
   finalizeStreamingMessage,
   markStreamingError,
   startStreamingMessage,
@@ -41,8 +42,14 @@ export function disconnectFromStream(): void {
   if (activeEventSource !== null) {
     activeEventSource.close();
     activeEventSource = null;
+    activeConversationId = null;
+    // The streaming message was driven by this EventSource. With the
+    // connection closed, it will never receive message_end and would
+    // linger as stale state. Clear it so that returning to the
+    // conversation later triggers a fresh fetch instead of showing
+    // orphaned partial content.
+    clearStreamingMessage();
   }
-  activeConversationId = null;
 }
 
 interface StreamEventUserMessage {
@@ -88,7 +95,7 @@ function handleStreamEvent(conversationId: string, event: StreamEvent): void {
 
   switch (processedEvent.type) {
     case "user_message":
-      startStreamingMessage(processedEvent.content ?? "");
+      startStreamingMessage(conversationId, processedEvent.content ?? "");
       break;
     case "message_start":
       break;
