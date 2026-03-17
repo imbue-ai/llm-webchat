@@ -26,7 +26,7 @@ class Config(BaseSettings):
     def split_comma_separated(cls, value: object) -> list[str] | None:
         if isinstance(value, str):
             return [item.strip() for item in value.split(",") if item.strip()]
-        return value
+        return None
 
     @model_validator(mode="after")
     def validate_unique_plugin_basenames(self) -> "Config":
