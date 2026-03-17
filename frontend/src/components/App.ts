@@ -18,6 +18,26 @@ const SCROLL_BOTTOM_THRESHOLD_PX = 40;
 let previousConversationId: string | null = null;
 let userScrolledUp = false;
 let modelSyncedForConversation: string | null = null;
+let sidebarCollapsed = false;
+
+function toggleSidebar(): void {
+  sidebarCollapsed = !sidebarCollapsed;
+}
+
+function SidebarToggleButton(): m.Vnode {
+  const icon = sidebarCollapsed ? "☰" : "✕";
+  const label = sidebarCollapsed ? "Open sidebar" : "Close sidebar";
+  return m(
+    "button",
+    {
+      class: "sidebar-toggle-button",
+      onclick: toggleSidebar,
+      "aria-label": label,
+      title: label,
+    },
+    icon,
+  );
+}
 
 function isNearBottom(element: HTMLElement): boolean {
   return element.scrollHeight - element.scrollTop - element.clientHeight < SCROLL_BOTTOM_THRESHOLD_PX;
@@ -111,17 +131,22 @@ export const App: m.Component = {
       });
     }
 
+    const sidebarClass = [
+      "app-sidebar border-r border-border bg-surface-secondary p-4",
+      sidebarCollapsed ? "app-sidebar--collapsed" : "",
+    ]
+      .filter(Boolean)
+      .join(" ");
+
     return m("div", { class: "app-layout flex h-screen" }, [
-      m(
-        "aside",
-        { class: "app-sidebar w-64 border-r border-border bg-surface-secondary p-4", "data-slot": "sidebar" },
-        sidebarClaimed ? null : [m(ConversationSelector)],
-      ),
+      m("aside", { class: sidebarClass, "data-slot": "sidebar" }, sidebarClaimed ? null : [m(ConversationSelector)]),
       m("div", { class: "app-main flex flex-1 flex-col" }, [
         m(
           "header",
-          { class: "app-header border-b border-border px-6 py-3", "data-slot": "header" },
-          headerClaimed ? null : [m("h1", { class: "text-xl font-bold text-text-primary" }, "llm webchat")],
+          { class: "app-header flex items-center gap-3 border-b border-border px-6 py-3", "data-slot": "header" },
+          headerClaimed
+            ? null
+            : [SidebarToggleButton(), m("h1", { class: "text-xl font-bold text-text-primary" }, "llm webchat")],
         ),
         mainContent,
         footerElement,
