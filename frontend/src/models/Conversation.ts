@@ -1,5 +1,5 @@
 import m from "mithril";
-import { runHook } from "../llm-api";
+import { runHook } from "../hooks";
 
 export interface Conversation {
   id: string;

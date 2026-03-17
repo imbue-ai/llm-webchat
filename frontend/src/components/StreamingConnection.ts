@@ -1,11 +1,11 @@
 import m from "mithril";
-import { runHook } from "../llm-api";
+import { runHook } from "../hooks";
 import {
   appendStreamingDelta,
   finalizeStreamingMessage,
   markStreamingError,
   startStreamingMessage,
-} from "./MessageList";
+} from "../models/StreamingMessage";
 
 let activeEventSource: EventSource | null = null;
 let activeConversationId: string | null = null;

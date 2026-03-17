@@ -1,7 +1,8 @@
 import m from "mithril";
-import { runHook } from "../llm-api";
+import { runHook } from "../hooks";
 import { fetchConversations } from "../models/Conversation";
-import { fetchResponses, startStreamingMessage } from "./MessageList";
+import { loadConversation } from "../views/MessageList";
+import { startStreamingMessage } from "../models/StreamingMessage";
 import { getSelectedModelId } from "../models/Model";
 import { ModelSelector } from "../views/ModelSelector";
 
@@ -62,10 +63,10 @@ async function createConversationAndSend(): Promise<void> {
 
     await fetchConversations();
 
-    // Pre-initialize fetchResponses so that when App.view() re-renders
-    // after the route change, its call to fetchResponses() will hit
+    // Pre-initialize loadConversation so that when App.view() re-renders
+    // after the route change, its call to loadConversation() will hit
     // the "already loaded" guard and won't clear streamingMessage.
-    await fetchResponses(conversationId);
+    await loadConversation(conversationId);
 
     // Navigate to the conversation page. This schedules a mithril
     // redraw that will call connectToStream() via App.view().

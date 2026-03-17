@@ -1,6 +1,6 @@
 import m from "mithril";
-import { runHook } from "../llm-api";
-import { clearStreamingMessage, isStreaming } from "./MessageList";
+import { runHook } from "../hooks";
+import { clearStreamingMessage, isStreaming } from "../models/StreamingMessage";
 import { getSelectedModelId } from "../models/Model";
 import { ModelSelector } from "../views/ModelSelector";
 

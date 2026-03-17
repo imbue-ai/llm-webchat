@@ -1,5 +1,5 @@
 import m from "mithril";
-import { isSlotClaimed } from "../llm-api";
+import { isSlotClaimed } from "../slots";
 import {
   fetchConversations,
   getConversations,

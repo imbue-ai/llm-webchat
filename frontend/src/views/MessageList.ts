@@ -1,39 +1,42 @@
 import m from "mithril";
-import { isSlotClaimed, runHook, setResponsesStore } from "../llm-api";
-import { renderMarkdown } from "./renderMarkdown";
+import { isSlotClaimed } from "../slots";
+import {
+  ConversationNotFoundError,
+  fetchResponses as fetchResponsesFromApi,
+  getResponsesForConversation,
+  type ResponseItem,
+  getLastResponseModel as getLastResponseModelFromStore,
+} from "../models/Response";
+import { getStreamingMessage } from "../models/StreamingMessage";
+import { renderMarkdown } from "../components/renderMarkdown";
 
-interface ResponseItem {
-  id: string;
-  model: string;
-  prompt: string | null;
-  system: string | null;
-  response: string;
-  conversation_id: string;
-  datetime_utc: string;
-  duration_ms: number | null;
-  input_tokens: number | null;
-  output_tokens: number | null;
-}
-
-interface ResponseListResponse {
-  responses: ResponseItem[];
-}
-
-interface StreamingMessage {
-  userPrompt: string;
-  assistantContent: string;
-  finalized: boolean;
-  error: string | null;
-}
-
-let responses: ResponseItem[] = [];
 let loading = false;
 let loadingError: string | null = null;
 let conversationNotFound = false;
 let currentConversationId: string | null = null;
-let streamingMessage: StreamingMessage | null = null;
+let pendingHashScroll = false;
+let previousStreamingMessage: unknown = null;
 
-export async function fetchResponses(conversationId: string): Promise<void> {
+export function isConversationNotFound(): boolean {
+  return conversationNotFound;
+}
+
+export function getLastResponseModel(): string | null {
+  if (currentConversationId === null) {
+    return null;
+  }
+  return getLastResponseModelFromStore(currentConversationId);
+}
+
+export function refetchCurrentConversation(): void {
+  const conversationId = currentConversationId;
+  if (conversationId !== null) {
+    currentConversationId = null;
+    loadConversation(conversationId);
+  }
+}
+
+export async function loadConversation(conversationId: string): Promise<void> {
   if (conversationId === currentConversationId) {
     return;
   }
@@ -41,99 +44,35 @@ export async function fetchResponses(conversationId: string): Promise<void> {
   loading = true;
   loadingError = null;
   conversationNotFound = false;
-  responses = [];
-  streamingMessage = null;
   pendingHashScroll = window.location.hash.length > 1;
 
   try {
-    const result = await m.request<ResponseListResponse>({
-      method: "GET",
-      url: "/api/conversations/:conversationId/responses",
-      params: { conversationId },
-    });
+    await fetchResponsesFromApi(conversationId);
     if (conversationId === currentConversationId) {
-      const hookResult = runHook("get_conversation", {
-        conversationId,
-        responses: result.responses,
-      });
-      responses = hookResult.responses;
-      setResponsesStore(conversationId, responses);
       loading = false;
       loadingError = null;
     }
   } catch (error) {
     if (conversationId === currentConversationId) {
       loading = false;
-      const requestError = error as { code?: number; message?: string };
-      if (requestError.code === 404) {
+      if (error instanceof ConversationNotFoundError) {
         conversationNotFound = true;
       } else {
-        loadingError = requestError.message ?? String(error);
+        loadingError = (error as Error).message ?? String(error);
       }
     }
   }
 }
 
-export function startStreamingMessage(userPrompt: string): void {
-  streamingMessage = {
-    userPrompt,
-    assistantContent: "",
-    finalized: false,
-    error: null,
-  };
-}
-
-export function appendStreamingDelta(content: string): void {
-  if (streamingMessage !== null) {
-    streamingMessage = {
-      ...streamingMessage,
-      assistantContent: streamingMessage.assistantContent + content,
-    };
+function scrollToHashTarget(): void {
+  const hash = window.location.hash;
+  if (!hash) {
+    return;
   }
-}
-
-export function finalizeStreamingMessage(): void {
-  if (streamingMessage !== null && streamingMessage.error === null) {
-    streamingMessage = null;
-    refetchCurrentConversation();
-  }
-}
-
-export function markStreamingError(errorContent: string): void {
-  if (streamingMessage !== null) {
-    streamingMessage = {
-      ...streamingMessage,
-      finalized: true,
-      error: errorContent,
-    };
-  }
-}
-
-export function clearStreamingMessage(): void {
-  streamingMessage = null;
-}
-
-export function isStreaming(): boolean {
-  return streamingMessage !== null && !streamingMessage.finalized;
-}
-
-export function isConversationNotFound(): boolean {
-  return conversationNotFound;
-}
-
-export function getLastResponseModel(): string | null {
-  if (responses.length === 0) {
-    return null;
-  }
-  const model = responses[responses.length - 1].model;
-  return model || null;
-}
-
-export function refetchCurrentConversation(): void {
-  const conversationId = currentConversationId;
-  if (conversationId !== null) {
-    currentConversationId = null;
-    fetchResponses(conversationId);
+  const element = document.getElementById(hash.slice(1));
+  if (element) {
+    element.scrollIntoView({ behavior: "smooth", block: "center" });
+    pendingHashScroll = false;
   }
 }
 
@@ -222,25 +161,19 @@ function renderErrorMessage(errorContent: string, partialAssistantContent: strin
   return m("div", { class: "message message-error mb-6" }, children);
 }
 
-let pendingHashScroll = false;
-
-function scrollToHashTarget(): void {
-  const hash = window.location.hash;
-  if (!hash) {
-    return;
-  }
-  const element = document.getElementById(hash.slice(1));
-  if (element) {
-    element.scrollIntoView({ behavior: "smooth", block: "center" });
-    pendingHashScroll = false;
-  }
-}
-
 export const MessageList: m.Component<{ conversationId: string | null }> = {
   onupdate() {
     if (pendingHashScroll && !loading) {
       scrollToHashTarget();
     }
+
+    // When streaming finishes (message goes from non-null to null without
+    // error), refetch to pick up the persisted response from the server.
+    const currentStreamingMessage = getStreamingMessage();
+    if (previousStreamingMessage !== null && currentStreamingMessage === null) {
+      refetchCurrentConversation();
+    }
+    previousStreamingMessage = currentStreamingMessage;
   },
   view(vnode) {
     const conversationId = vnode.attrs.conversationId;
@@ -275,6 +208,9 @@ export const MessageList: m.Component<{ conversationId: string | null }> = {
         m("p", { class: "text-red-500" }, `Error: ${loadingError}`),
       );
     }
+
+    const responses = getResponsesForConversation(conversationId);
+    const streamingMessage = getStreamingMessage();
 
     if (responses.length === 0 && streamingMessage === null) {
       return m(

@@ -1,5 +1,6 @@
-import { llmApi, runHook } from "./llm-api";
+import { llmApi } from "./llm-api";
 import type { LlmApi } from "./llm-api";
+import { runHook } from "./hooks";
 import m from "mithril";
 import "./style.css";
 import { App } from "./components/App";

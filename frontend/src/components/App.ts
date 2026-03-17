@@ -1,14 +1,14 @@
 import m from "mithril";
-import { isSlotClaimed } from "../llm-api";
+import { isSlotClaimed } from "../slots";
 import { getSelectedConversationId, navigateToNewConversation } from "../models/Conversation";
 import { ConversationSelector } from "../views/ConversationSelector";
 import {
   MessageList,
-  fetchResponses,
+  loadConversation,
   getLastResponseModel,
   isConversationNotFound,
   refetchCurrentConversation,
-} from "./MessageList";
+} from "../views/MessageList";
 import { MessageInput } from "./MessageInput";
 import { setSelectedModelId } from "../models/Model";
 import { NewConversation } from "./NewConversation";
@@ -63,7 +63,7 @@ export const App: m.Component = {
     const isNewConversationRoute = m.route.get() === "/new";
 
     if (selectedConversationId) {
-      fetchResponses(selectedConversationId);
+      loadConversation(selectedConversationId);
       if (!isConversationNotFound()) {
         connectToStream(selectedConversationId);
       } else {
