@@ -41,7 +41,7 @@ async function handleCreateConversation(): Promise<void> {
     // first renders for this conversation, it sees an active streaming
     // message and skips the initial fetch (the data will be fetched
     // once streaming finalises).
-    startStreamingMessage(conversationId, trimmedMessage);
+    startStreamingMessage(conversationId, trimmedMessage, modelId);
 
     // Navigate to the conversation page. This schedules a mithril
     // redraw that will render MessageList and call connectToStream()

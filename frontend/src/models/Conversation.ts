@@ -1,5 +1,6 @@
 import m from "mithril";
 import { runHook } from "../hooks";
+import { getSelectedConversationId, selectConversation } from "../navigation";
 
 export interface Conversation {
   id: string;
@@ -31,19 +32,6 @@ export function getConversationsLoaded(): boolean {
 
 export function getLoadingError(): string | null {
   return loadingError;
-}
-
-export function getSelectedConversationId(): string | null {
-  const attrs = m.route.param("conversationId");
-  return attrs ?? null;
-}
-
-export function selectConversation(conversationId: string): void {
-  m.route.set("/conversations/:conversationId", { conversationId });
-}
-
-export function navigateToNewConversation(): void {
-  m.route.set("/new");
 }
 
 function conversationName(text: string): string {

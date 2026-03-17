@@ -150,7 +150,9 @@ def _run_llm_subprocess(
     system_prompt: str | None = None,
 ) -> None:
     try:
-        conversation_event_queues.broadcast(conversation_id, {"type": "user_message", "content": message})
+        conversation_event_queues.broadcast(
+            conversation_id, {"type": "user_message", "content": message, "model": model}
+        )
         conversation_event_queues.broadcast(conversation_id, {"type": "message_start"})
 
         command = ["llm", "-m", model, "--cid", conversation_id]

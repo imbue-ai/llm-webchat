@@ -11,6 +11,7 @@ import { runHook } from "../hooks";
 export interface StreamingMessage {
   conversationId: string;
   userPrompt: string;
+  model: string | null;
   assistantContent: string;
   finalized: boolean;
   error: string | null;
@@ -25,10 +26,11 @@ export function getStreamingMessage(conversationId: string): StreamingMessage | 
   return null;
 }
 
-export function startStreamingMessage(conversationId: string, userPrompt: string): void {
+export function startStreamingMessage(conversationId: string, userPrompt: string, model: string | null): void {
   streamingMessage = {
     conversationId,
     userPrompt,
+    model,
     assistantContent: "",
     finalized: false,
     error: null,
@@ -117,6 +119,7 @@ export function disconnectFromStream(): void {
 interface StreamEventUserMessage {
   type: "user_message";
   content: string;
+  model?: string;
 }
 
 interface StreamEventMessageStart {
@@ -150,6 +153,7 @@ function handleStreamEvent(conversationId: string, event: StreamEvent): void {
     event: {
       type: event.type,
       content: "content" in event ? event.content : undefined,
+      model: "model" in event ? event.model : undefined,
     },
   });
 
@@ -157,7 +161,7 @@ function handleStreamEvent(conversationId: string, event: StreamEvent): void {
 
   switch (processedEvent.type) {
     case "user_message":
-      startStreamingMessage(conversationId, processedEvent.content ?? "");
+      startStreamingMessage(conversationId, processedEvent.content ?? "", processedEvent.model ?? null);
       break;
     case "message_start":
       break;

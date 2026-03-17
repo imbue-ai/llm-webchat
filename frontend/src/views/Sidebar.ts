@@ -1,6 +1,6 @@
 import m from "mithril";
 import { isSlotClaimed } from "../slots";
-import { navigateToNewConversation } from "../models/Conversation";
+import { navigateToNewConversation } from "../navigation";
 import { ConversationSelector } from "./ConversationSelector";
 
 const ICON_PANEL_LEFT_CLOSE = '<path d="M3 3h18v18H3z"/><path d="M9 3v18"/><path d="M14 9l-3 3 3 3"/>';

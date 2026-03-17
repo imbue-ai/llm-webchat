@@ -1,13 +1,7 @@
 import m from "mithril";
 import { isSlotClaimed } from "../slots";
-import {
-  fetchConversations,
-  getConversations,
-  getLoadingError,
-  getSelectedConversationId,
-  navigateToNewConversation,
-  selectConversation,
-} from "../models/Conversation";
+import { fetchConversations, getConversations, getLoadingError } from "../models/Conversation";
+import { getSelectedConversationId, navigateToNewConversation, selectConversation } from "../navigation";
 
 export interface ConversationSelectorAttrs {
   collapseButton?: m.Vnode | null;

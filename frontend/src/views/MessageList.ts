@@ -3,13 +3,19 @@ import { isSlotClaimed } from "../slots";
 import {
   ConversationNotFoundError,
   fetchResponses as fetchResponsesFromApi,
+  getLastResponseModel,
   getResponsesForConversation,
   isConversationNotFound as isConversationNotFoundInStore,
   type ResponseItem,
 } from "../models/Response";
-import { getStreamingMessage, type StreamingMessage } from "../models/StreamingMessage";
+import {
+  connectToStream,
+  disconnectFromStream,
+  getStreamingMessage,
+  type StreamingMessage,
+} from "../models/StreamingMessage";
 import { renderMarkdown } from "../markdown";
-import { MessageInput } from "./MessageInput";
+import { MessageInput, setSelectedModelId } from "./MessageInput";
 
 const SCROLL_BOTTOM_THRESHOLD_PX = 40;
 
@@ -124,6 +130,7 @@ export function MessageList(): m.Component<{ conversationId: string | null }> {
   let pendingHashScroll = false;
   let previousStreamingMessage: StreamingMessage | null = null;
   let userScrolledUp = false;
+  let modelSyncedForConversation: string | null = null;
 
   async function fetchConversation(conversationId: string): Promise<void> {
     loading = true;
@@ -146,13 +153,48 @@ export function MessageList(): m.Component<{ conversationId: string | null }> {
     }
   }
 
+  function manageStreamConnection(conversationId: string | null): void {
+    if (conversationId !== null) {
+      if (!isConversationNotFoundInStore(conversationId)) {
+        connectToStream(conversationId);
+      } else {
+        disconnectFromStream();
+      }
+    } else if (currentConversationId !== null) {
+      disconnectFromStream();
+    }
+  }
+
+  function syncModelSelection(conversationId: string): void {
+    // If there's a streaming message with a known model, always prefer it –
+    // this covers the case where the user changed the model, sent a message,
+    // navigated away, and came back while the response is still streaming.
+    const streamingMsg = getStreamingMessage(conversationId);
+    if (streamingMsg?.model) {
+      setSelectedModelId(streamingMsg.model);
+      modelSyncedForConversation = conversationId;
+      return;
+    }
+
+    if (modelSyncedForConversation === conversationId) {
+      return;
+    }
+    const lastModel = getLastResponseModel(conversationId);
+    if (lastModel) {
+      setSelectedModelId(lastModel);
+      modelSyncedForConversation = conversationId;
+    }
+  }
+
   function ensureConversationLoaded(conversationId: string): void {
     if (conversationId === currentConversationId) {
+      syncModelSelection(conversationId);
       return;
     }
 
     const previousId = currentConversationId;
     currentConversationId = conversationId;
+    modelSyncedForConversation = null;
 
     // Reset scroll state on conversation change
     if (previousId !== null) {
@@ -266,6 +308,7 @@ export function MessageList(): m.Component<{ conversationId: string | null }> {
 
     view(vnode) {
       const conversationId = vnode.attrs.conversationId;
+      manageStreamConnection(conversationId);
       const conversationIsNotFound = conversationId !== null && isConversationNotFoundInStore(conversationId);
       const showFooter = conversationId === null || !conversationIsNotFound;
 

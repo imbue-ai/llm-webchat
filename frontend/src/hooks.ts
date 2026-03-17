@@ -52,6 +52,7 @@ interface StreamEventHookData {
   event: {
     type: string;
     content?: string;
+    model?: string;
   };
 }
 
