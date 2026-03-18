@@ -1,11 +1,12 @@
 from collections.abc import Callable
+from typing import Any
 
 import pluggy
 
 hookspec = pluggy.HookspecMarker("llm_webchat")
 hookimpl = pluggy.HookimplMarker("llm_webchat")
 
-EventBroadcaster = Callable[[str, dict[str, str]], None]
+EventBroadcaster = Callable[[str, dict[str, Any]], None]
 
 
 class LlmWebchatHookSpec:
@@ -21,7 +22,13 @@ class LlmWebchatHookSpec:
     def register_event_broadcaster(self, broadcaster: EventBroadcaster) -> None:
         """Receive a reference to the event broadcaster for injecting events into conversation streams.
 
-        The broadcaster callable has the signature (conversation_id: str, event: dict[str, str]) -> None.
-        Implementations may store this reference and call it at any time to inject custom events
-        into the stream for a given conversation.
+        The broadcaster callable has the signature
+        ``(conversation_id: str, event: dict[str, Any]) -> None``.
+        Implementations may store this reference and call it at any time to inject
+        custom events into the stream for a given conversation.
+
+        Events are plain dicts.  Every event must have a ``"type"`` key.  An optional
+        ``"buffer_behavior"`` key (``"store"``, ``"ignore"``, or ``"flush"``) controls
+        replay-buffer semantics; it defaults to ``"store"`` and is stripped before
+        delivery to subscribers.
         """

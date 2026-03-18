@@ -27,6 +27,7 @@ from llm_webchat.database import list_conversations
 from llm_webchat.database import list_responses
 from llm_webchat.database import open_database
 from llm_webchat.event_queues import ConversationEventQueues
+from llm_webchat.events import BufferBehavior
 from llm_webchat.models import ConversationListResponse
 from llm_webchat.models import CreateConversationRequest
 from llm_webchat.models import CreateConversationResponse
@@ -201,7 +202,9 @@ def _run_llm_subprocess(
             )
             conversation_event_queues.broadcast(conversation_id, {"type": "error", "content": error_content})
 
-        conversation_event_queues.broadcast(conversation_id, {"type": "message_end"})
+        conversation_event_queues.broadcast(
+            conversation_id, {"type": "message_end", "buffer_behavior": BufferBehavior.FLUSH}
+        )
 
     except Exception as exception:
         logger.error(
@@ -210,7 +213,9 @@ def _run_llm_subprocess(
             traceback.format_exc(),
         )
         conversation_event_queues.broadcast(conversation_id, {"type": "error", "content": str(exception)})
-        conversation_event_queues.broadcast(conversation_id, {"type": "message_end"})
+        conversation_event_queues.broadcast(
+            conversation_id, {"type": "message_end", "buffer_behavior": BufferBehavior.FLUSH}
+        )
 
 
 def _send_message(conversation_id: str, send_message_request: SendMessageRequest, request: Request) -> JSONResponse:
