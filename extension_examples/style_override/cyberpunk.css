@@ -1,0 +1,364 @@
+/*
+ * cyberpunk.css — A wild neon-drenched restyling of llm-webchat.
+ *
+ * Load via:
+ *   LLM_WEBCHAT_STATIC_PATHS=extension_examples/style_override \
+ *     LLM_WEBCHAT_JAVASCRIPT_PLUGINS=cyberpunk-loader.js \
+ *     llm webchat
+ *
+ * Or just drop a <link> tag. This file relies only on the semantic
+ * class names and CSS custom properties exposed by the default theme.
+ */
+
+/* ── Theme variable overrides ─────────────────────────────────── */
+
+:root {
+  --color-primary: #ff2d95;
+  --color-primary-hover: #ff6eb4;
+  --color-surface: #0b0018;
+  --color-surface-secondary: #16002e;
+  --color-text-primary: #e0d6ff;
+  --color-text-secondary: #8a7caa;
+  --color-border: #2e1a52;
+  --color-user-bubble-bg: #1a0040;
+  --color-user-bubble-text: #00ffcc;
+  --font-family-base: "JetBrains Mono", "Fira Code", ui-monospace, monospace;
+  --width-sidebar: 18rem;
+}
+
+/* ── Global ───────────────────────────────────────────────────── */
+
+body {
+  background: radial-gradient(ellipse at 30% 0%, #1a003a 0%, #0b0018 70%);
+  background-attachment: fixed;
+}
+
+*, *::before, *::after {
+  scrollbar-color: #ff2d95 #0b0018;
+}
+
+::selection {
+  background: #ff2d9580;
+  color: #fff;
+}
+
+/* Subtle scanline overlay on the whole page */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(255, 255, 255, 0.015) 2px,
+    rgba(255, 255, 255, 0.015) 4px
+  );
+  z-index: 9999;
+}
+
+/* ── Layout ───────────────────────────────────────────────────── */
+
+.app-layout {
+  background: transparent;
+}
+
+/* ── Header ───────────────────────────────────────────────────── */
+
+.app-header {
+  background: linear-gradient(90deg, #0b0018, #1a003a, #0b0018);
+  border-bottom: 2px solid #ff2d95 !important;
+  box-shadow: 0 0 20px #ff2d9540, 0 2px 8px #0008;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+}
+
+/* ── Sidebar ──────────────────────────────────────────────────── */
+
+.app-sidebar {
+  background: linear-gradient(180deg, #10002a 0%, #0b0018 100%);
+  border-right: 1px solid #2e1a52;
+  box-shadow: inset -20px 0 40px -20px #ff2d9510;
+}
+
+.sidebar-icon-button {
+  color: #8a7caa;
+  border-radius: 4px;
+}
+
+.sidebar-icon-button:hover {
+  color: #ff2d95;
+  background: #ff2d9520;
+  box-shadow: 0 0 8px #ff2d9540;
+}
+
+.conversation-selector-title {
+  color: #00ffcc !important;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-size: 0.7rem !important;
+  text-shadow: 0 0 8px #00ffcc60;
+}
+
+/* Conversation items — glowing on hover */
+.conversation-selector-item {
+  border-radius: 6px;
+  padding: 0.5rem 0.6rem;
+  transition: all 200ms ease;
+  border: 1px solid transparent;
+}
+
+.conversation-selector-item:hover {
+  background: #ff2d9515;
+  border-color: #ff2d9560;
+  box-shadow: 0 0 12px #ff2d9520;
+}
+
+.conversation-selector-item[aria-current="true"],
+.conversation-selector-item--active {
+  background: #ff2d9520 !important;
+  border-color: #ff2d95 !important;
+  box-shadow: 0 0 16px #ff2d9530, inset 0 0 12px #ff2d9510;
+}
+
+.conversation-selector-item-name {
+  color: #e0d6ff;
+}
+
+.conversation-selector-item-model {
+  color: #00ffcc !important;
+  font-family: var(--font-family-base);
+  letter-spacing: 0.05em;
+}
+
+/* ── Main content area ────────────────────────────────────────── */
+
+.app-main {
+  background: transparent;
+}
+
+.app-content {
+  background: transparent;
+}
+
+/* ── Messages ─────────────────────────────────────────────────── */
+
+.message-list {
+  /* faint vertical neon line down the left */
+}
+
+/* User bubble — neon cyan pill */
+.message-user-bubble {
+  background: linear-gradient(135deg, #1a004080, #00ffcc10) !important;
+  border: 1px solid #00ffcc60;
+  box-shadow: 0 0 16px #00ffcc15, inset 0 1px 0 #00ffcc20;
+  color: #00ffcc !important;
+  border-radius: 1rem 1rem 0.25rem 1rem;
+  backdrop-filter: blur(4px);
+}
+
+/* Assistant messages — left border accent */
+.message-assistant {
+  position: relative;
+  padding-left: 1rem;
+  border-left: 2px solid #ff2d9580;
+}
+
+.message-assistant .message-content {
+  color: #d4c6f7 !important;
+}
+
+/* Error messages */
+.message-error {
+  border-left: 2px solid #ff4444;
+  padding-left: 1rem;
+}
+
+/* Streaming dots — neon pink */
+.streaming-dot {
+  background-color: #ff2d95 !important;
+  box-shadow: 0 0 6px #ff2d95;
+}
+
+/* ── Markdown content ─────────────────────────────────────────── */
+
+.markdown-content code {
+  background: #ffffff0a;
+  border: 1px solid #2e1a52;
+  color: #00ffcc;
+}
+
+.markdown-content pre {
+  background: #0d0020 !important;
+  border: 1px solid #2e1a52;
+  box-shadow: inset 0 0 30px #ff2d9508;
+}
+
+.markdown-content pre code {
+  color: #c4b5fd;
+  border: none;
+}
+
+.markdown-content blockquote {
+  border-left-color: #ff2d95;
+  color: #8a7caa;
+  background: #ff2d9508;
+  padding: 0.5rem 1rem;
+  border-radius: 0 0.5rem 0.5rem 0;
+}
+
+.markdown-content a {
+  color: #00ffcc;
+  text-decoration: none;
+  border-bottom: 1px dashed #00ffcc60;
+  transition: all 150ms;
+}
+
+.markdown-content a:hover {
+  color: #fff;
+  border-bottom-color: #fff;
+  text-shadow: 0 0 8px #00ffcc80;
+}
+
+.markdown-content th {
+  background: #1a004060 !important;
+  color: #ff2d95;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 0.8em;
+}
+
+.markdown-content td,
+.markdown-content th {
+  border-color: #2e1a52 !important;
+}
+
+.markdown-content hr {
+  border-top-color: #ff2d9540 !important;
+  box-shadow: 0 0 8px #ff2d9520;
+}
+
+.markdown-content h1,
+.markdown-content h2,
+.markdown-content h3 {
+  color: #ff2d95;
+  text-shadow: 0 0 12px #ff2d9530;
+}
+
+/* ── Footer / input area ──────────────────────────────────────── */
+
+.app-footer {
+  background: linear-gradient(0deg, #10002a, transparent);
+  border-top: 1px solid #2e1a52 !important;
+}
+
+.message-input textarea,
+.new-conversation-input textarea {
+  background: #0d0020 !important;
+  border: 1px solid #2e1a52 !important;
+  color: #e0d6ff !important;
+  caret-color: #ff2d95;
+  border-radius: 0.75rem !important;
+  transition: border-color 200ms, box-shadow 200ms;
+}
+
+.message-input textarea:focus,
+.new-conversation-input textarea:focus {
+  border-color: #ff2d95 !important;
+  box-shadow: 0 0 16px #ff2d9530 !important;
+  outline: none;
+}
+
+.message-input textarea::placeholder,
+.new-conversation-input textarea::placeholder {
+  color: #5a4a7a;
+}
+
+/* Send button */
+.message-input button,
+.new-conversation-input button {
+  background: linear-gradient(135deg, #ff2d95, #cc0066) !important;
+  color: #fff !important;
+  border: none !important;
+  box-shadow: 0 0 16px #ff2d9540;
+  transition: all 200ms;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.message-input button:hover,
+.new-conversation-input button:hover {
+  background: linear-gradient(135deg, #ff6eb4, #ff2d95) !important;
+  box-shadow: 0 0 24px #ff2d9560;
+  transform: translateY(-1px);
+}
+
+/* ── New conversation screen ──────────────────────────────────── */
+
+.new-conversation-title {
+  color: #ff2d95 !important;
+  text-shadow: 0 0 20px #ff2d9540;
+  letter-spacing: 0.05em;
+}
+
+/* Model selector */
+.model-selector-label {
+  color: #8a7caa !important;
+  border: 1px solid #2e1a52;
+  border-radius: 1rem;
+  padding: 0.2rem 0.6rem;
+  transition: all 200ms;
+}
+
+.model-selector-label:hover {
+  border-color: #ff2d95;
+  color: #ff2d95 !important;
+  box-shadow: 0 0 8px #ff2d9520;
+}
+
+.model-selector-model-name {
+  color: #00ffcc;
+}
+
+/* System prompt area */
+.system-prompt-section textarea {
+  background: #0d0020 !important;
+  border: 1px solid #2e1a52 !important;
+  color: #e0d6ff !important;
+  caret-color: #00ffcc;
+}
+
+.system-prompt-section textarea:focus {
+  border-color: #00ffcc !important;
+  box-shadow: 0 0 12px #00ffcc20 !important;
+  outline: none;
+}
+
+/* ── Misc flourishes ──────────────────────────────────────────── */
+
+/* Glitch flicker on the header title — subtle */
+@keyframes neon-flicker {
+  0%, 95%, 100% { opacity: 1; }
+  96% { opacity: 0.8; }
+  97% { opacity: 1; }
+  98% { opacity: 0.6; }
+  99% { opacity: 1; }
+}
+
+.app-header > * {
+  animation: neon-flicker 4s infinite;
+}
+
+/* Pulsing glow on streaming indicator */
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 4px #ff2d9560; }
+  50% { box-shadow: 0 0 12px #ff2d9580; }
+}
+
+.streaming-indicator {
+  animation: pulse-glow 2s ease-in-out infinite;
+  padding: 0.25rem 0.75rem;
+  border-radius: 1rem;
+  background: #ff2d9510;
+}
