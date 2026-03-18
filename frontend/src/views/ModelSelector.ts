@@ -19,6 +19,11 @@ export const ModelSelector: m.Component<ModelSelectorAttributes> = {
     const models = getModels();
     const selectedId = vnode.attrs.selectedModelId;
     const isDisabled = vnode.attrs.disabled ?? false;
+    const handleSelectionChange = (event: Event): void => {
+      const select = event.target as HTMLSelectElement;
+      vnode.attrs.onSelect(select.value);
+      m.redraw();
+    };
 
     return m("div", { class: "model-selector-wrapper relative inline-block" }, [
       m(
@@ -27,10 +32,8 @@ export const ModelSelector: m.Component<ModelSelectorAttributes> = {
           class: `model-selector-native absolute inset-0 w-full h-full opacity-0 ${isDisabled ? "cursor-not-allowed" : "cursor-pointer"}`,
           value: selectedId ?? "",
           disabled: isDisabled,
-          onchange: (event: Event) => {
-            const select = event.target as HTMLSelectElement;
-            vnode.attrs.onSelect(select.value);
-          },
+          oninput: handleSelectionChange,
+          onchange: handleSelectionChange,
         },
         models.map((model) => m("option", { key: model.model_id, value: model.model_id }, model.model_id)),
       ),
