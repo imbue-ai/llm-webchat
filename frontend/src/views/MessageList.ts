@@ -20,15 +20,24 @@ import { MessageInput, setSelectedModelId } from "./MessageInput";
 
 const SCROLL_BOTTOM_THRESHOLD_PX = 40;
 
-function scrollToHashTarget(): void {
+function getHashTargetId(): string | null {
   const hash = window.location.hash;
-  if (!hash) {
-    return;
+  return hash.length > 1 ? hash.slice(1) : null;
+}
+
+function scrollToHashTarget(): boolean {
+  const hashTargetId = getHashTargetId();
+  if (hashTargetId === null) {
+    return false;
   }
-  const element = document.getElementById(hash.slice(1));
-  if (element) {
-    element.scrollIntoView({ behavior: "smooth", block: "center" });
+
+  const element = document.getElementById(hashTargetId);
+  if (element === null) {
+    return false;
   }
+
+  element.scrollIntoView({ behavior: "auto", block: "center" });
+  return true;
 }
 
 function isNearBottom(element: HTMLElement): boolean {
@@ -132,11 +141,12 @@ export function MessageList(): m.Component<{ conversationId: string | null }> {
   let previousStreamingMessage: StreamingMessage | null = null;
   let userScrolledUp = false;
   let modelSyncedForConversation: string | null = null;
+  let previousScrollTop = 0;
+  let previousLocationHash = window.location.hash;
 
   async function fetchConversation(conversationId: string): Promise<void> {
     loading = true;
     loadingError = null;
-    pendingHashScroll = window.location.hash.length > 1;
 
     try {
       await fetchResponsesFromApi(conversationId);
@@ -167,12 +177,9 @@ export function MessageList(): m.Component<{ conversationId: string | null }> {
   }
 
   function syncModelSelection(conversationId: string): void {
-    // If there's a streaming message with a known model, always prefer it –
-    // this covers the case where the user changed the model, sent a message,
-    // navigated away, and came back while the response is still streaming.
-    const streamingMsg = getStreamingMessage(conversationId);
-    if (streamingMsg?.model) {
-      setSelectedModelId(streamingMsg.model);
+    const streamingMessage = getStreamingMessage(conversationId);
+    if (streamingMessage?.model) {
+      setSelectedModelId(streamingMessage.model);
       modelSyncedForConversation = conversationId;
       return;
     }
@@ -180,10 +187,24 @@ export function MessageList(): m.Component<{ conversationId: string | null }> {
     if (modelSyncedForConversation === conversationId) {
       return;
     }
+
     const lastModel = getLastResponseModel(conversationId);
     if (lastModel) {
       setSelectedModelId(lastModel);
       modelSyncedForConversation = conversationId;
+    }
+  }
+
+  function syncHashScrollState(): void {
+    const currentLocationHash = window.location.hash;
+    if (currentLocationHash === previousLocationHash) {
+      return;
+    }
+
+    previousLocationHash = currentLocationHash;
+    if (getHashTargetId() !== null) {
+      pendingHashScroll = true;
+      userScrolledUp = true;
     }
   }
 
@@ -193,18 +214,12 @@ export function MessageList(): m.Component<{ conversationId: string | null }> {
       return;
     }
 
-    const previousId = currentConversationId;
     currentConversationId = conversationId;
     modelSyncedForConversation = null;
+    previousScrollTop = 0;
+    pendingHashScroll = getHashTargetId() !== null;
+    userScrolledUp = pendingHashScroll;
 
-    // Reset scroll state on conversation change
-    if (previousId !== null) {
-      userScrolledUp = window.location.hash.length > 1;
-    }
-
-    // When a streaming message is already in progress for this conversation
-    // (e.g. after creating a new conversation), skip the fetch — the data
-    // will be fetched once streaming finalises.
     if (getStreamingMessage(conversationId) !== null) {
       loading = false;
       loadingError = null;
@@ -214,9 +229,41 @@ export function MessageList(): m.Component<{ conversationId: string | null }> {
     fetchConversation(conversationId);
   }
 
+  function applyScrollPosition(element: HTMLElement): void {
+    if (pendingHashScroll) {
+      if (!loading && scrollToHashTarget()) {
+        pendingHashScroll = false;
+        previousScrollTop = element.scrollTop;
+      }
+      return;
+    }
+
+    if (!userScrolledUp) {
+      scrollToBottom(element);
+      previousScrollTop = element.scrollTop;
+    }
+  }
+
   function handleScrollEvent(event: Event): void {
     const element = event.target as HTMLElement;
-    userScrolledUp = !isNearBottom(element);
+    const currentScrollTop = element.scrollTop;
+    const didScrollUp = currentScrollTop < previousScrollTop;
+
+    previousScrollTop = currentScrollTop;
+
+    if (didScrollUp) {
+      userScrolledUp = true;
+      return;
+    }
+
+    if (isNearBottom(element)) {
+      userScrolledUp = false;
+    }
+  }
+
+  function handleHashChange(): void {
+    syncHashScrollState();
+    m.redraw();
   }
 
   function renderMainContent(conversationId: string | null): m.Vnode {
@@ -289,14 +336,15 @@ export function MessageList(): m.Component<{ conversationId: string | null }> {
   }
 
   return {
-    onupdate() {
-      if (pendingHashScroll && !loading) {
-        scrollToHashTarget();
-        pendingHashScroll = false;
-      }
+    oncreate() {
+      window.addEventListener("hashchange", handleHashChange);
+    },
 
-      // When streaming finishes (message goes from non-null to null without
-      // error), refetch to pick up the persisted response from the server.
+    onremove() {
+      window.removeEventListener("hashchange", handleHashChange);
+    },
+
+    onupdate() {
       const currentStreamingMessage =
         currentConversationId !== null ? getStreamingMessage(currentConversationId) : null;
       if (previousStreamingMessage !== null && currentStreamingMessage === null) {
@@ -308,6 +356,8 @@ export function MessageList(): m.Component<{ conversationId: string | null }> {
     },
 
     view(vnode) {
+      syncHashScrollState();
+
       const conversationId = vnode.attrs.conversationId;
       manageStreamConnection(conversationId);
       const conversationIsNotFound = conversationId !== null && isConversationNotFoundInStore(conversationId);
@@ -319,10 +369,7 @@ export function MessageList(): m.Component<{ conversationId: string | null }> {
             { class: "app-footer border-t border-border px-6 py-3", "data-slot": "conversation-footer" },
             isSlotClaimed("conversation-footer")
               ? null
-              : [
-                  m(EmptySlot, { name: "conversation-before-input" }),
-                  m(MessageInput, { conversationId }),
-                ],
+              : [m(EmptySlot, { name: "conversation-before-input" }), m(MessageInput, { conversationId })],
           )
         : null;
 
@@ -334,12 +381,10 @@ export function MessageList(): m.Component<{ conversationId: string | null }> {
             "data-slot": "conversation-content",
             onscroll: handleScrollEvent,
             oncreate: (mainVnode: m.VnodeDOM) => {
-              scrollToBottom(mainVnode.dom as HTMLElement);
+              applyScrollPosition(mainVnode.dom as HTMLElement);
             },
             onupdate: (mainVnode: m.VnodeDOM) => {
-              if (!userScrolledUp) {
-                scrollToBottom(mainVnode.dom as HTMLElement);
-              }
+              applyScrollPosition(mainVnode.dom as HTMLElement);
             },
           },
           isSlotClaimed("conversation-content") ? null : renderMainContent(conversationId),
