@@ -15,6 +15,7 @@ import {
   type StreamingMessage,
 } from "../models/StreamingMessage";
 import { renderMarkdown } from "../markdown";
+import { EmptySlot } from "./EmptySlot";
 import { MessageInput, setSelectedModelId } from "./MessageInput";
 
 const SCROLL_BOTTOM_THRESHOLD_PX = 40;
@@ -316,7 +317,12 @@ export function MessageList(): m.Component<{ conversationId: string | null }> {
         ? m(
             "footer",
             { class: "app-footer border-t border-border px-6 py-3", "data-slot": "conversation-footer" },
-            isSlotClaimed("conversation-footer") ? null : m(MessageInput, { conversationId }),
+            isSlotClaimed("conversation-footer")
+              ? null
+              : [
+                  m(EmptySlot, { name: "conversation-before-input" }),
+                  m(MessageInput, { conversationId }),
+                ],
           )
         : null;
 

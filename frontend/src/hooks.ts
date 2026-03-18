@@ -76,6 +76,7 @@ type HookCallback<T> = T extends void
 type AnyHookCallback = (...args: any[]) => any;
 
 const hookListeners: Record<string, AnyHookCallback[]> = {};
+let readyFired = false;
 
 export async function runHook<K extends HookName>(
   eventName: K,
@@ -88,6 +89,7 @@ export async function runHook<K extends HookName>(
   }
 
   if (eventName === "ready") {
+    readyFired = true;
     for (const callback of listeners) {
       await callback();
     }
@@ -111,6 +113,12 @@ export function registerHook<K extends HookName>(eventName: K, callback: HookCal
     hookListeners[eventName] = [];
   }
   hookListeners[eventName].push(callback as AnyHookCallback);
+
+  // If "ready" has already fired, invoke late registrations immediately
+  // so plugins loaded after the app bootstrap still work.
+  if (eventName === "ready" && readyFired) {
+    (callback as () => void | Promise<void>)();
+  }
 }
 
 export type {

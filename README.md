@@ -103,15 +103,21 @@ make this easier, the default DOM will contain certain stable
 elements / containers with well data attributes which plugins
 can use as anchor points:
 
-- `<div data-slot="header">`
-- `<div data-slot="sidebar">`
-- `<div data-slot="sidebar-header">`
-- `<div data-slot="conversation-selector-item">`
-- `<div data-slot="conversation-content">`
-- `<div data-slot="conversation-footer">`
-- `<div data-slot="new-conversation-content">`
-- `<div data-slot="new-conversation-footer">`
-- `<div data-slot="message" data-message-id="...">`
+- `<div data-slot="header">` — the top header bar
+- `<div data-slot="header-actions">` — empty container inside the header, right-aligned (for buttons, indicators)
+- `<div data-slot="sidebar">` — the full sidebar
+- `<div data-slot="sidebar-header">` — the sidebar title, collapse button, and "New Conversation" button
+- `<div data-slot="sidebar-before-list">` — empty container between the sidebar header and the conversation list (for search, filters)
+- `<div data-slot="conversation-selector-item">` — an individual conversation entry in the sidebar
+- `<div data-slot="conversation-after-header">` — empty container below the header, above the message list (for banners, breadcrumbs)
+- `<div data-slot="conversation-content">` — the scrollable message list area
+- `<div data-slot="conversation-before-input">` — empty container inside the footer, above the message input (for toolbars, attachments)
+- `<div data-slot="conversation-footer">` — the footer containing the message input
+- `<div data-slot="new-conversation-content">` — the new conversation form area
+- `<div data-slot="new-conversation-footer">` — the footer on the new conversation screen
+- `<div data-slot="message" data-message-id="...">` — an individual assistant message
+
+Slots marked "empty" render as empty `<div>` elements by default and exist purely as extension points — plugins can claim them and inject content without replacing any built-in UI.
 
 Furthermore, there's a global "$llm" object that can be used to:
 

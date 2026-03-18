@@ -2,6 +2,7 @@ import m from "mithril";
 import { isSlotClaimed } from "../slots";
 import { fetchConversations, getConversations, getLoadingError } from "../models/Conversation";
 import { getSelectedConversationId, navigateToNewConversation, selectConversation } from "../navigation";
+import { EmptySlot } from "./EmptySlot";
 
 export interface ConversationSelectorAttrs {
   collapseButton?: m.Vnode | null;
@@ -50,6 +51,7 @@ export const ConversationSelector: m.Component<ConversationSelectorAttrs> = {
 
     return m("div", { class: "conversation-selector", "data-slot": "conversation-selector" }, [
       sidebarHeader,
+      m(EmptySlot, { name: "sidebar-before-list" }),
       loadingError
         ? m("p", { class: "conversation-selector-error mt-2 text-sm text-red-500" }, `Error: ${loadingError}`)
         : conversations.length === 0
