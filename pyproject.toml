@@ -5,6 +5,9 @@ description = "A web chat interface plugin for llm"
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
+authors = [
+    { name = "Hynek Urban", email = "hynek@imbue.com" },
+]
 dependencies = [
     "llm>=0.28",
     "fastapi>=0.115",
@@ -15,6 +18,12 @@ dependencies = [
     "sqlite-utils>=3.39",
 ]
 
+[project.urls]
+Homepage = "https://github.com/imbue-ai/llm-webchat"
+Repository = "https://github.com/imbue-ai/llm-webchat"
+Issues = "https://github.com/imbue-ai/llm-webchat/issues"
+Changelog = "https://github.com/imbue-ai/llm-webchat/releases"
+
 [project.scripts]
 llm-webchat = "llm_webchat:main"
 
@@ -24,6 +33,11 @@ webchat = "llm_webchat"
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[tool.hatch.build]
+artifacts = [
+    "src/llm_webchat/static/**",
+]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/llm_webchat"]
