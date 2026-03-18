@@ -78,7 +78,7 @@ export const MessageInput: m.Component<{ conversationId: string | null }> = {
             placeholder: "Type a message…",
             rows: 1,
             value: messageText,
-            disabled: busy,
+            disabled: sending,
             oncreate: (textareaVnode: m.VnodeDOM) => {
               autoResizeTextarea(textareaVnode.dom as HTMLTextAreaElement);
             },
