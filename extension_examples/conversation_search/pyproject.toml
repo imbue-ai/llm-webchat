@@ -1,0 +1,19 @@
+[project]
+name = "llm-webchat-search"
+version = "0.1.0"
+description = "Full-text conversation search for llm-webchat"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+dependencies = [
+    "llm-webchat",
+]
+
+[project.entry-points.llm]
+webchat-search = "llm_webchat_search"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/llm_webchat_search"]
