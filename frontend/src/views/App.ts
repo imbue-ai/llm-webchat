@@ -27,7 +27,7 @@ export function App(): m.Component {
             isSlotClaimed("header")
               ? null
               : [
-                  m("h1", { class: "text-xl font-bold text-text-primary" }, "llm webchat"),
+                  m("h1", { class: "text-xl font-bold text-text-primary" }, "LLM Webchat"),
                   m(EmptySlot, { name: "header-actions" }),
                 ],
           ),
