@@ -1,4 +1,4 @@
-# markdown_export — React plugin example
+# Markdown export — React plugin example
 
 A frontend-only plugin that adds an Export button to the header.
 Clicking it downloads the current conversation as a Markdown file.
@@ -14,7 +14,7 @@ This example demonstrates:
 From the repository root:
 
 ```bash
-LLM_WEBCHAT_JAVASCRIPT_PLUGINS=extension_examples/markdown_export/markdown-export.js \
+LLM_WEBCHAT_JAVASCRIPT_PLUGINS=extension_examples/markdown_export_with_react/markdown-export.js \
   llm webchat
 ```
 
