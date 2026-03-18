@@ -3,6 +3,7 @@ import { clearStreamingMessage, isStreaming } from "../models/StreamingMessage";
 import { sendMessage } from "../models/Response";
 import { getDefaultModelId, persistSelectedModelId } from "../models/Model";
 import { ModelSelector } from "./ModelSelector";
+import { Spinner } from "./Spinner";
 
 const MAX_TEXTAREA_HEIGHT_PX = 200;
 
@@ -57,6 +58,11 @@ export const MessageInput: m.Component<{ conversationId: string | null }> = {
       }
     }
 
+    const streaming = isStreaming();
+    const hasMessageText = messageText.trim().length > 0;
+    const busy = sending || streaming;
+    const sendButtonLabel = sending ? "Sending…" : streaming ? "Generating…" : "Send";
+
     return m("div", { class: "message-input mx-auto w-full max-w-(--width-message-column) flex items-center gap-3" }, [
       m(
         "div",
@@ -72,7 +78,7 @@ export const MessageInput: m.Component<{ conversationId: string | null }> = {
             placeholder: "Type a message…",
             rows: 1,
             value: messageText,
-            disabled: sending || isStreaming(),
+            disabled: busy,
             oncreate: (textareaVnode: m.VnodeDOM) => {
               autoResizeTextarea(textareaVnode.dom as HTMLTextAreaElement);
             },
@@ -89,7 +95,7 @@ export const MessageInput: m.Component<{ conversationId: string | null }> = {
           m("div", { class: "message-input-toolbar flex justify-end px-3 pb-2" }, [
             m(ModelSelector, {
               selectedModelId,
-              disabled: sending || isStreaming(),
+              disabled: busy,
               onSelect: (modelId: string) => {
                 selectedModelId = modelId;
                 persistSelectedModelId(modelId);
@@ -102,15 +108,13 @@ export const MessageInput: m.Component<{ conversationId: string | null }> = {
         "button",
         {
           class: [
-            "message-input-send-button rounded-lg px-5 py-3 text-sm font-medium text-white transition-colors",
-            sending || isStreaming()
-              ? "bg-primary/50 cursor-not-allowed"
-              : "bg-primary hover:bg-primary-hover cursor-pointer",
+            "message-input-send-button inline-flex w-36 items-center justify-center gap-2 rounded-lg px-5 py-3 text-sm font-medium text-white transition-colors",
+            busy ? "bg-primary/50 cursor-not-allowed" : "bg-primary hover:bg-primary-hover cursor-pointer",
           ].join(" "),
-          disabled: sending || isStreaming() || !messageText.trim(),
+          disabled: busy || !hasMessageText,
           onclick: handleSend,
         },
-        sending ? "Sending…" : "Send",
+        busy ? [m(Spinner), sendButtonLabel] : sendButtonLabel,
       ),
     ]);
   },

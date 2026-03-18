@@ -4,6 +4,7 @@ import { createConversationAndSend } from "../models/Conversation";
 import { startStreamingMessage } from "../models/StreamingMessage";
 import { getDefaultModelId, persistSelectedModelId } from "../models/Model";
 import { ModelSelector } from "./ModelSelector";
+import { Spinner } from "./Spinner";
 
 const MAX_TEXTAREA_HEIGHT_PX = 200;
 
@@ -65,6 +66,9 @@ function renderForm(): m.Vnode {
     }
   }
 
+  const hasMessageText = messageText.trim().length > 0;
+  const sendButtonLabel = creating ? "Creating…" : "Send";
+
   return m("div", { class: "new-conversation flex items-center justify-center h-full" }, [
     m("div", { class: "new-conversation-form w-full max-w-(--width-message-column) flex flex-col gap-4" }, [
       m(
@@ -116,13 +120,13 @@ function renderForm(): m.Vnode {
           "button",
           {
             class: [
-              "new-conversation-send-button rounded-lg px-5 py-3 text-sm font-medium text-white transition-colors",
+              "new-conversation-send-button inline-flex w-36 items-center justify-center gap-2 rounded-lg px-5 py-3 text-sm font-medium text-white transition-colors",
               creating ? "bg-primary/50 cursor-not-allowed" : "bg-primary hover:bg-primary-hover cursor-pointer",
             ].join(" "),
-            disabled: creating || !messageText.trim(),
+            disabled: creating || !hasMessageText,
             onclick: handleCreateConversation,
           },
-          creating ? "Creating…" : "Send",
+          creating ? [m(Spinner), sendButtonLabel] : sendButtonLabel,
         ),
       ]),
       m("div", { class: "system-prompt-row flex gap-3 -mt-2" }, [
@@ -164,7 +168,7 @@ function renderForm(): m.Vnode {
         m(
           "div",
           {
-            class: "new-conversation-send-button-spacer rounded-lg px-5 py-3 text-sm font-medium invisible",
+            class: "new-conversation-send-button-spacer w-36 rounded-lg px-5 py-3 text-sm font-medium invisible",
           },
           "Send",
         ),
