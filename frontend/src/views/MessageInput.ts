@@ -10,6 +10,7 @@ const MAX_TEXTAREA_HEIGHT_PX = 200;
 let messageText = "";
 let sending = false;
 let selectedModelId: string | null = null;
+let messageTextareaElement: HTMLTextAreaElement | null = null;
 
 export function setSelectedModelId(modelId: string): void {
   selectedModelId = modelId;
@@ -19,6 +20,10 @@ function autoResizeTextarea(textarea: HTMLTextAreaElement): void {
   textarea.style.height = "auto";
   textarea.style.height = `${Math.min(textarea.scrollHeight, MAX_TEXTAREA_HEIGHT_PX)}px`;
   textarea.style.overflowY = textarea.scrollHeight > MAX_TEXTAREA_HEIGHT_PX ? "auto" : "hidden";
+}
+
+function focusMessageTextarea(): void {
+  messageTextareaElement?.focus();
 }
 
 export const MessageInput: m.Component<{ conversationId: string | null }> = {
@@ -48,6 +53,9 @@ export const MessageInput: m.Component<{ conversationId: string | null }> = {
       } finally {
         sending = false;
         m.redraw();
+        requestAnimationFrame(() => {
+          focusMessageTextarea();
+        });
       }
     }
 
@@ -80,10 +88,16 @@ export const MessageInput: m.Component<{ conversationId: string | null }> = {
             value: messageText,
             disabled: sending,
             oncreate: (textareaVnode: m.VnodeDOM) => {
-              autoResizeTextarea(textareaVnode.dom as HTMLTextAreaElement);
+              messageTextareaElement = textareaVnode.dom as HTMLTextAreaElement;
+              autoResizeTextarea(messageTextareaElement);
+              focusMessageTextarea();
             },
             onupdate: (textareaVnode: m.VnodeDOM) => {
-              autoResizeTextarea(textareaVnode.dom as HTMLTextAreaElement);
+              messageTextareaElement = textareaVnode.dom as HTMLTextAreaElement;
+              autoResizeTextarea(messageTextareaElement);
+            },
+            onremove: () => {
+              messageTextareaElement = null;
             },
             oninput: (event: Event) => {
               const textarea = event.target as HTMLTextAreaElement;
