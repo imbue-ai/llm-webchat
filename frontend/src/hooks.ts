@@ -8,19 +8,6 @@
 import type { Conversation } from "./models/Conversation";
 import type { ResponseItem } from "./models/Response";
 
-interface MessageData {
-  id: string;
-  conversationId: string;
-  model: string;
-  prompt: string | null;
-  system: string | null;
-  response: string;
-  datetimeUtc: string;
-  durationMs: number | null;
-  inputTokens: number | null;
-  outputTokens: number | null;
-}
-
 interface GetConversationsHookData {
   conversations: Conversation[];
 }
@@ -43,8 +30,8 @@ interface PostConversationMessageHookData {
   systemPrompt?: string;
 }
 
-interface GetMessageHookData {
-  message: MessageData;
+interface GetResponseHookData {
+  response: ResponseItem;
 }
 
 interface StreamEventHookData {
@@ -62,7 +49,7 @@ type HookDataMap = {
   get_conversation: GetConversationHookData;
   post_conversation: PostConversationHookData;
   post_conversation_message: PostConversationMessageHookData;
-  get_message: GetMessageHookData;
+  get_response: GetResponseHookData;
   stream_event: StreamEventHookData;
 };
 
@@ -122,12 +109,11 @@ export function registerHook<K extends HookName>(eventName: K, callback: HookCal
 }
 
 export type {
-  MessageData,
   GetConversationsHookData,
   GetConversationHookData,
   PostConversationHookData,
   PostConversationMessageHookData,
-  GetMessageHookData,
+  GetResponseHookData,
   StreamEventHookData,
   HookDataMap,
   HookName,

@@ -51,7 +51,7 @@ There's a global `$llm` object that can be used to:
     - Returns true when the claim succeeded, false otherwise (e.g. when already claimed by another plugin).
     - (This is to prevent conflicts between the renders done by the core mithril.js loop and the renders done by the plugins.)
 - Get specific parts of the current page state:
-    - `$llm.getMessage(messageId)`
+    - `$llm.getResponse(responseId)`
     - `$llm.getConversations()`
     - `$llm.getConversation(conversationId)`
     - `$llm.getModels()`
@@ -61,7 +61,7 @@ There's a global `$llm` object that can be used to:
     - `$llm.on("get_conversation")`
     - `$llm.on("post_conversation")`
     - `$llm.on("post_conversation_message")`
-    - `$llm.on("get_message")`
+    - `$llm.on("get_response")`
     - `$llm.on("stream_event")`
 
 The registered `on` callbacks can be typically used both to
