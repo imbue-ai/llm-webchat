@@ -21,8 +21,8 @@ llm webchat
 
 ### Prerequisites
 
-- Python 3.10+ with [uv](https://github.com/astral-sh/uv)
-- Node.js 18+
+- A reasonably recent version of Python with [uv](https://github.com/astral-sh/uv)
+- A reasonably recent version of Node
 
 ### Building and running
 
