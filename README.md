@@ -1,4 +1,10 @@
+![LLM Webchat logo](https://github.com/user-attachments/assets/40c27a0c-5431-48c4-a2c1-9daafc2c8bd7)
+
 # LLM Webchat
+
+[![PyPI](https://img.shields.io/pypi/v/llm-webchat)](https://pypi.org/project/llm-webchat/)
+[![Tests](https://img.shields.io/github/actions/workflow/status/OWNER/llm-webchat/ci.yml?label=tests)](https://github.com/OWNER/llm-webchat/actions)
+[![License](https://img.shields.io/github/license/OWNER/llm-webchat)](LICENSE)
 
 A plugin for the [LLM](https://github.com/simonw/llm) tool.
 When installed, running `llm webchat` starts a local webserver.
