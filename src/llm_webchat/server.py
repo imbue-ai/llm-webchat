@@ -315,8 +315,6 @@ def create_application(config: Config | None = None) -> FastAPI:
     assets_directory = STATIC_DIRECTORY / "assets"
     if assets_directory.is_dir():
         application.mount("/assets", StaticFiles(directory=assets_directory), name="assets")
-    if STATIC_DIRECTORY.is_dir():
-        application.mount("/static", StaticFiles(directory=STATIC_DIRECTORY), name="static")
 
     application.add_api_route("/{path:path}", _index, methods=["GET"])
 
