@@ -2,13 +2,12 @@
 
 A plugin for the [LLM](https://github.com/simonw/llm) tool.
 When installed, running `llm webchat` starts a local webserver.
-Visiting its address in the browser lets you see the
-conversations in your `llm` database and chat with supported
-language models.
+Visiting its address in the browser lets you see conversations
+in your `llm` database and chat with supported language models.
 
-The appearance and functionality of `llm-webchat` is heavily
-customizable - styles, frontend appearance and behavior and even
-the backend logic.
+The appearance and functionality of `llm-webchat` are heavily
+customizable: styles, frontend behavior and even the backend
+logic.
 
 For more details, see the [high-level architecture docs](./docs/architecture.md) or the [extension docs](./docs/extensions.md).
 
