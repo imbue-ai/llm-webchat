@@ -2,6 +2,7 @@ from collections.abc import Callable
 from typing import Any
 
 import pluggy
+from fastapi import FastAPI
 
 hookspec = pluggy.HookspecMarker("llm_webchat")
 hookimpl = pluggy.HookimplMarker("llm_webchat")
@@ -11,7 +12,7 @@ EventBroadcaster = Callable[[str, dict[str, Any]], None]
 
 class LlmWebchatHookSpec:
     @hookspec
-    def endpoint(self, app: object) -> None:
+    def endpoint(self, app: FastAPI) -> None:
         """Register additional endpoints or override built-in endpoints on the FastAPI application.
 
         Plugin routes are registered before built-in routes, so a plugin may override

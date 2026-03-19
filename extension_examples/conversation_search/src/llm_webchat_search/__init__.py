@@ -6,6 +6,7 @@ from pathlib import Path
 import click
 import llm
 import uvicorn
+from fastapi import FastAPI
 from fastapi import Query
 from fastapi import Request
 from fastapi.responses import JSONResponse
@@ -113,8 +114,8 @@ def _search_conversations(query: str, limit: int = 20) -> list[dict[str, str]]:
 
 class SearchPlugin:
     @hookimpl
-    def endpoint(self, app: object) -> None:
-        @app.get("/api/search")  # type: ignore[union-attr]
+    def endpoint(self, app: FastAPI) -> None:
+        @app.get("/api/search")
         def search_conversations(
             request: Request,
             q: str = Query(..., min_length=1),

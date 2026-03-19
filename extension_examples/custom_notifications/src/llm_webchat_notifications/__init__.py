@@ -11,6 +11,7 @@ from typing import Any
 import click
 import llm
 import uvicorn
+from fastapi import FastAPI
 from fastapi import Request
 from fastapi.responses import JSONResponse
 
@@ -51,8 +52,8 @@ class NotificationPlugin:
         self._broadcaster = broadcaster
 
     @hookimpl
-    def endpoint(self, app: object) -> None:
-        @app.get("/api/conversations")  # type: ignore[union-attr]
+    def endpoint(self, app: FastAPI) -> None:
+        @app.get("/api/conversations")
         def list_conversations_with_tracking(request: Request, count: int = 10) -> JSONResponse:
             response = _list_conversations_endpoint(request, count)
             if response.status_code != 200:  # type: ignore[union-attr]
