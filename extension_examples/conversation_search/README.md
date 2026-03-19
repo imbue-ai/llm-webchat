@@ -11,6 +11,6 @@ Adds full-text search across all conversation messages. Demonstrates:
 From the repository root:
 
 ```bash
-uv pip install -e extension_examples/conversation_search
-llm webchat-with-search
+uv run llm install -e extension_examples/conversation_search/
+uv run llm webchat-with-search
 ```

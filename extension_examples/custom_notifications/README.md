@@ -9,6 +9,6 @@ to its name in the sidebar.
 From the repository root:
 
 ```bash
-uv pip install -e extension_examples/custom_notifications
-llm webchat-with-notifications
+uv run llm install -e extension_examples/custom_notifications
+uv run llm webchat-with-notifications
 ```
