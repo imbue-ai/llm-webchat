@@ -10,6 +10,8 @@ The appearance and functionality of `llm-webchat` is heavily
 customizable - styles, frontend appearance and behavior and even
 the backend logic.
 
+For more details, see the [high-level architecture docs](./docs/architecture.md) or the [extension docs](./docs/extensions.md).
+
 ## Quickstart
 
 ```bash
