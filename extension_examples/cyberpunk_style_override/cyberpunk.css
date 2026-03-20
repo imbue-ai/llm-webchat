@@ -262,42 +262,44 @@ body::after {
   border-top: 1px solid #2e1a52 !important;
 }
 
-.message-input textarea,
-.new-conversation-input textarea {
+/* Composer box (the card that wraps textarea + toolbar) */
+.message-input-box,
+.new-conversation-input-box {
   background: #0d0020 !important;
   border: 1px solid #2e1a52 !important;
-  color: #e0d6ff !important;
-  caret-color: #ff2d95;
-  border-radius: 0.75rem !important;
+  box-shadow: 0 0 20px #0008;
   transition: border-color 200ms, box-shadow 200ms;
 }
 
-.message-input textarea:focus,
-.new-conversation-input textarea:focus {
+.message-input-box:focus-within,
+.new-conversation-input-box:focus-within {
   border-color: #ff2d95 !important;
   box-shadow: 0 0 16px #ff2d9530 !important;
-  outline: none;
 }
 
-.message-input textarea::placeholder,
-.new-conversation-input textarea::placeholder {
+.message-input-textbox,
+.new-conversation-textbox {
+  color: #e0d6ff !important;
+  caret-color: #ff2d95;
+}
+
+.message-input-textbox::placeholder,
+.new-conversation-textbox::placeholder {
   color: #5a4a7a;
 }
 
 /* Send button */
-.message-input button,
-.new-conversation-input button {
+.message-input-send-button,
+.new-conversation-send-button {
   background: linear-gradient(135deg, #ff2d95, #cc0066) !important;
   color: #fff !important;
   border: none !important;
   box-shadow: 0 0 16px #ff2d9540;
   transition: all 200ms;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
 }
 
-.message-input button:hover,
-.new-conversation-input button:hover {
+.message-input-send-button:hover,
+.new-conversation-send-button:hover {
   background: linear-gradient(135deg, #ff6eb4, #ff2d95) !important;
   box-shadow: 0 0 24px #ff2d9560;
   transform: translateY(-1px);
