@@ -377,15 +377,6 @@ body {
   border-color: var(--color-accent);
 }
 
-.model-selector-trigger--disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.model-selector-trigger--disabled:hover {
-  border-color: var(--color-border);
-}
-
 .model-selector-chevron {
   font-size: 10px;
   line-height: 1;

@@ -101,7 +101,7 @@ export const MessageInput: m.Component<{ conversationId: string | null }> = {
           m("div", { class: "message-input-toolbar-left" }, [
             m(ModelSelector, {
               selectedModelId,
-              disabled: busy,
+
               onSelect: (modelId: string) => {
                 selectedModelId = modelId;
                 persistSelectedModelId(modelId);

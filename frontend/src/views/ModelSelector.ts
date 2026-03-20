@@ -4,7 +4,6 @@ import { fetchModels, getModels } from "../models/Model";
 interface ModelSelectorAttributes {
   selectedModelId: string | null;
   onSelect: (modelId: string) => void;
-  disabled?: boolean;
 }
 
 let open = false;
@@ -61,14 +60,10 @@ export const ModelSelector: m.Component<ModelSelectorAttributes> = {
     }
 
     const selectedId = vnode.attrs.selectedModelId;
-    const isDisabled = vnode.attrs.disabled ?? false;
     const selectedModelExists = selectedId !== null && models.some((model) => model.model_id === selectedId);
 
     function handleToggle(event: Event): void {
       event.stopPropagation();
-      if (isDisabled) {
-        return;
-      }
       open = !open;
     }
 
@@ -81,11 +76,8 @@ export const ModelSelector: m.Component<ModelSelectorAttributes> = {
       m(
         "button",
         {
-          class: ["model-selector-trigger", isDisabled ? "model-selector-trigger--disabled" : ""]
-            .filter(Boolean)
-            .join(" "),
+          class: "model-selector-trigger",
           onclick: handleToggle,
-          disabled: isDisabled,
           type: "button",
         },
         [
