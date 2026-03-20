@@ -343,7 +343,7 @@ body {
 @keyframes logo-breathe {
   0%,
   100% {
-    transform: scale(0.8);
+    transform: scale(0.64);
   }
   50% {
     transform: scale(1);
