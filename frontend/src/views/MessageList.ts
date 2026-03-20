@@ -22,6 +22,59 @@ import { EmptySlot } from "./EmptySlot";
 import { MessageInput, setSelectedModelId } from "./MessageInput";
 
 const SCROLL_BOTTOM_THRESHOLD_PX = 40;
+const SCROLL_TO_USER_MESSAGE_OFFSET_PX = 40;
+
+function measureContentAfterLastUserMessage(wrapper: HTMLElement, spacerElement: HTMLElement): number {
+  const userMessages = wrapper.querySelectorAll(".message-user");
+  const lastUserMessage = userMessages.length > 0 ? (userMessages[userMessages.length - 1] as HTMLElement) : null;
+  if (lastUserMessage === null) {
+    return 0;
+  }
+
+  const lastUserMessageBottom = lastUserMessage.offsetTop + lastUserMessage.offsetHeight;
+  const spacerTop = spacerElement.offsetTop;
+  return Math.max(0, spacerTop - lastUserMessageBottom);
+}
+
+function updateSpacerHeight(spacerElement: HTMLElement): void {
+  const scrollContainer = spacerElement.closest(".app-content") as HTMLElement | null;
+  if (scrollContainer === null) {
+    return;
+  }
+
+  const wrapper = spacerElement.closest(".message-list-wrapper") as HTMLElement | null;
+  if (wrapper === null) {
+    return;
+  }
+
+  const userMessages = wrapper.querySelectorAll(".message-user");
+  const lastUserMessage = userMessages.length > 0 ? (userMessages[userMessages.length - 1] as HTMLElement) : null;
+  const lastUserMessageHeight = lastUserMessage !== null ? lastUserMessage.offsetHeight : 0;
+
+  const contentAfterUserMessage = measureContentAfterLastUserMessage(wrapper, spacerElement);
+  const reservedHeight = lastUserMessageHeight + contentAfterUserMessage + SCROLL_TO_USER_MESSAGE_OFFSET_PX;
+  const spacerHeight = Math.max(0, scrollContainer.clientHeight - reservedHeight);
+  spacerElement.style.height = `${spacerHeight}px`;
+}
+
+function scrollToLastUserMessage(spacerElement: HTMLElement): void {
+  const scrollContainer = spacerElement.closest(".app-content") as HTMLElement | null;
+  if (scrollContainer === null) {
+    return;
+  }
+
+  const wrapper = spacerElement.closest(".message-list-wrapper") as HTMLElement | null;
+  if (wrapper === null) {
+    return;
+  }
+
+  const userMessages = wrapper.querySelectorAll(".message-user");
+  const lastUserMessage = userMessages.length > 0 ? (userMessages[userMessages.length - 1] as HTMLElement) : null;
+  if (lastUserMessage !== null) {
+    const targetScrollTop = lastUserMessage.offsetTop - scrollContainer.offsetTop - SCROLL_TO_USER_MESSAGE_OFFSET_PX;
+    scrollContainer.scrollTop = Math.max(0, targetScrollTop);
+  }
+}
 
 function getHashTargetId(): string | null {
   const hash = window.location.hash;
@@ -138,6 +191,8 @@ export function MessageList(): m.Component<{ conversationId: string | null }> {
   let modelSyncedForConversation: string | null = null;
   let previousScrollTop = 0;
   let previousLocationHash = window.location.hash;
+  let userSubmittedInSession = false;
+  let pendingScrollToUserMessage = false;
 
   async function fetchConversation(conversationId: string): Promise<void> {
     loading = true;
@@ -323,11 +378,37 @@ export function MessageList(): m.Component<{ conversationId: string | null }> {
       }
     }
 
-    return m(
-      "div",
-      { class: "message-list mx-auto w-full max-w-(--width-message-column) flex flex-col py-6" },
-      messageNodes,
-    );
+    const shouldScroll = pendingScrollToUserMessage;
+    const spacer = userSubmittedInSession
+      ? m("div", {
+          class: "message-list-scroll-spacer",
+          oncreate: (spacerVnode: m.VnodeDOM) => {
+            const element = spacerVnode.dom as HTMLElement;
+            updateSpacerHeight(element);
+            if (shouldScroll) {
+              scrollToLastUserMessage(element);
+              pendingScrollToUserMessage = false;
+            }
+          },
+          onupdate: (spacerVnode: m.VnodeDOM) => {
+            const element = spacerVnode.dom as HTMLElement;
+            updateSpacerHeight(element);
+            if (shouldScroll) {
+              scrollToLastUserMessage(element);
+              pendingScrollToUserMessage = false;
+            }
+          },
+        })
+      : null;
+
+    return m("div", { class: "message-list-wrapper" }, [
+      m(
+        "div",
+        { class: "message-list mx-auto w-full max-w-(--width-message-column) flex flex-col py-6" },
+        messageNodes,
+      ),
+      spacer,
+    ]);
   }
 
   return {
@@ -345,6 +426,10 @@ export function MessageList(): m.Component<{ conversationId: string | null }> {
       const conversationId = vnode.attrs.conversationId;
 
       const currentStreamingMessage = conversationId !== null ? getStreamingMessage(conversationId) : null;
+      if (previousStreamingMessage === null && currentStreamingMessage !== null) {
+        userSubmittedInSession = true;
+        pendingScrollToUserMessage = true;
+      }
       if (previousStreamingMessage !== null && currentStreamingMessage === null) {
         const finalizedMessage = consumeLastFinalizedMessage();
         if (finalizedMessage !== null) {
