@@ -3,7 +3,7 @@ import { clearStreamingMessage, isStreaming } from "../models/StreamingMessage";
 import { sendMessage } from "../models/Response";
 import { getDefaultModelId, persistSelectedModelId } from "../models/Model";
 import { ModelSelector } from "./ModelSelector";
-import logoUrl from "../../media/logo_raw.png";
+import logoUrl from "../assets/logo_raw.png";
 
 const MAX_TEXTAREA_HEIGHT_PX = 200;
 
