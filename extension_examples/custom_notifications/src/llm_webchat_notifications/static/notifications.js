@@ -30,7 +30,7 @@ window.addEventListener("load", function () {
           escapedId +
           '"] .conversation-selector-item-name::after {' +
           '  content: " \\25CF";' +
-          "  color: var(--color-primary);" +
+          "  color: var(--color-accent);" +
           "  font-size: 0.6rem;" +
           "  vertical-align: middle;" +
           "  margin-left: 0.35rem;" +

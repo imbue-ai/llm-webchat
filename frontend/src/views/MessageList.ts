@@ -455,6 +455,7 @@ export function MessageList(): m.Component<{ conversationId: string | null }> {
               : [
                   m("h1", { class: "app-header-title" }, conversationName),
                   conversationModel ? m("span", { class: "app-header-model-badge" }, conversationModel) : null,
+                  m(EmptySlot, { name: "header-actions" }),
                 ],
           )
         : null;
@@ -471,6 +472,7 @@ export function MessageList(): m.Component<{ conversationId: string | null }> {
 
       return m("div", { class: "app-content-wrapper flex-1 flex flex-col min-h-0" }, [
         titleBar,
+        m(EmptySlot, { name: "conversation-after-header" }),
         m(
           "main",
           {

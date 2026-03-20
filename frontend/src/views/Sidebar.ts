@@ -42,14 +42,22 @@ export const Sidebar: m.Component = {
         iconButton("New conversation", navigateToNewConversation, ICON_PLUS),
       ]),
       m("div", { class: "sidebar-expanded-content flex flex-col flex-1 min-h-0" }, [
-        m("div", { class: "sidebar-branding-row" }, [
-          m("span", { class: "sidebar-branding-title" }, "LLM Webchat"),
-          iconButton("Collapse sidebar", toggle, ICON_PANEL_LEFT_CLOSE),
-        ]),
-        m("div", { class: "sidebar-new-conversation-row" }, [
-          m("span", { class: "sidebar-new-conversation-label" }, "New conversation"),
-          iconButton("New conversation", navigateToNewConversation, ICON_PLUS),
-        ]),
+        m(
+          "div",
+          { "data-slot": "sidebar-header" },
+          isSlotClaimed("sidebar-header")
+            ? null
+            : [
+                m("div", { class: "sidebar-branding-row" }, [
+                  m("span", { class: "sidebar-branding-title" }, "LLM Webchat"),
+                  iconButton("Collapse sidebar", toggle, ICON_PANEL_LEFT_CLOSE),
+                ]),
+                m("div", { class: "sidebar-new-conversation-row" }, [
+                  m("span", { class: "sidebar-new-conversation-label" }, "New conversation"),
+                  iconButton("New conversation", navigateToNewConversation, ICON_PLUS),
+                ]),
+              ],
+        ),
         m(ConversationSelector),
       ]),
     ]);
