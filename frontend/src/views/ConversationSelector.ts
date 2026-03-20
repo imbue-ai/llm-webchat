@@ -88,7 +88,7 @@ export const ConversationSelector: m.Component = {
           : conversations.length === 0
             ? m(
                 "p",
-                { class: "conversation-selector-empty mt-2 text-sm text-text-secondary" },
+                { class: "conversation-selector-empty mt-2 px-5 text-sm text-text-secondary" },
                 "No conversations yet.",
               )
             : m(
