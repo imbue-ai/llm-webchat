@@ -14,6 +14,7 @@ import {
   getStreamingMessage,
   type StreamingMessage,
 } from "../models/StreamingMessage";
+import { getConversations } from "../models/Conversation";
 import { renderMarkdown } from "../markdown";
 import { EmptySlot } from "./EmptySlot";
 import { MessageInput, setSelectedModelId } from "./MessageInput";
@@ -48,15 +49,27 @@ function scrollToBottom(element: HTMLElement): void {
   element.scrollTop = element.scrollHeight;
 }
 
+function getConversationName(conversationId: string | null): string {
+  if (!conversationId) {
+    return "";
+  }
+  const conversations = getConversations();
+  const conversation = conversations.find((c) => c.id === conversationId);
+  return conversation?.name || "Untitled conversation";
+}
+
+function getConversationModel(conversationId: string | null): string {
+  if (!conversationId) {
+    return "";
+  }
+  const conversations = getConversations();
+  const conversation = conversations.find((c) => c.id === conversationId);
+  return conversation?.model || "";
+}
+
 function renderUserMessage(prompt: string): m.Vnode {
-  return m("div", { class: "message message-user flex justify-end mb-6" }, [
-    m(
-      "div",
-      {
-        class: "message-user-bubble max-w-[85%] rounded-3xl bg-user-bubble-bg px-5 py-3 text-user-bubble-text",
-      },
-      [m("div", { class: "message-content whitespace-pre-wrap text-sm" }, prompt)],
-    ),
+  return m("div", { class: "message message-user" }, [
+    m("div", { class: "message-user-bubble" }, [m("div", { class: "message-content whitespace-pre-wrap" }, prompt)]),
   ]);
 }
 
@@ -66,43 +79,29 @@ function renderAssistantMessage(responseItem: ResponseItem): m.Vnode {
     "div",
     {
       id: responseItem.id,
-      class: "message message-assistant mb-6",
+      class: "message message-assistant",
       "data-slot": "message",
       "data-message-id": responseItem.id,
     },
     messageClaimed
       ? null
-      : [
-          m(
-            "div",
-            {
-              class: "message-content markdown-content text-sm text-text-primary leading-relaxed",
-            },
-            m.trust(renderMarkdown(responseItem.response)),
-          ),
-        ],
+      : [m("div", { class: "message-content markdown-content" }, m.trust(renderMarkdown(responseItem.response)))],
   );
 }
 
 function renderStreamingIndicator(): m.Vnode {
   return m("div", { class: "streaming-indicator inline-flex items-center gap-2 mt-4" }, [
-    m("span", { class: "streaming-dot streaming-dot-1 w-2 h-2 rounded-full bg-text-secondary" }),
-    m("span", { class: "streaming-dot streaming-dot-2 w-2 h-2 rounded-full bg-text-secondary" }),
-    m("span", { class: "streaming-dot streaming-dot-3 w-2 h-2 rounded-full bg-text-secondary" }),
+    m("span", { class: "streaming-dot streaming-dot-1 w-2 h-2 rounded-full bg-accent" }),
+    m("span", { class: "streaming-dot streaming-dot-2 w-2 h-2 rounded-full bg-accent" }),
+    m("span", { class: "streaming-dot streaming-dot-3 w-2 h-2 rounded-full bg-accent" }),
   ]);
 }
 
 function renderStreamingAssistantMessage(content: string): m.Vnode {
   const hasContent = content.length > 0;
-  return m("div", { class: "message message-assistant message-streaming mb-6" }, [
+  return m("div", { class: "message message-assistant message-streaming" }, [
     hasContent
-      ? m(
-          "div",
-          {
-            class: "message-content markdown-content text-sm text-text-primary leading-relaxed",
-          },
-          m.trust(renderMarkdown(content)),
-        )
+      ? m("div", { class: "message-content markdown-content" }, m.trust(renderMarkdown(content)))
       : renderStreamingIndicator(),
   ]);
 }
@@ -111,13 +110,7 @@ function renderErrorMessage(errorContent: string, partialAssistantContent: strin
   const children: m.Children[] = [];
   if (partialAssistantContent) {
     children.push(
-      m(
-        "div",
-        {
-          class: "message-content markdown-content text-sm text-text-primary mb-3",
-        },
-        m.trust(renderMarkdown(partialAssistantContent)),
-      ),
+      m("div", { class: "message-content markdown-content mb-3" }, m.trust(renderMarkdown(partialAssistantContent))),
     );
   }
   children.push(
@@ -125,7 +118,7 @@ function renderErrorMessage(errorContent: string, partialAssistantContent: strin
       "div",
       {
         class:
-          "message-error-banner flex items-center gap-2 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700 dark:bg-red-950 dark:border-red-800 dark:text-red-300",
+          "message-error-banner flex items-center gap-2 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700",
       },
       [m("span", { class: "message-error-icon" }, "⚠"), m("span", errorContent)],
     ),
@@ -363,10 +356,29 @@ export function MessageList(): m.Component<{ conversationId: string | null }> {
       const conversationIsNotFound = conversationId !== null && isConversationNotFoundInStore(conversationId);
       const showFooter = conversationId === null || !conversationIsNotFound;
 
+      const conversationName = getConversationName(conversationId);
+      const conversationModel = getConversationModel(conversationId);
+
+      const titleBar = conversationId
+        ? m(
+            "header",
+            {
+              class: "app-header",
+              "data-slot": "header",
+            },
+            isSlotClaimed("header")
+              ? null
+              : [
+                  m("h1", { class: "app-header-title" }, conversationName),
+                  conversationModel ? m("span", { class: "app-header-model-badge" }, conversationModel) : null,
+                ],
+          )
+        : null;
+
       const footerElement = showFooter
         ? m(
             "footer",
-            { class: "app-footer border-t border-border px-6 py-3", "data-slot": "conversation-footer" },
+            { class: "app-footer", "data-slot": "conversation-footer" },
             isSlotClaimed("conversation-footer")
               ? null
               : [m(EmptySlot, { name: "conversation-before-input" }), m(MessageInput, { conversationId })],
@@ -374,10 +386,11 @@ export function MessageList(): m.Component<{ conversationId: string | null }> {
         : null;
 
       return m("div", { class: "app-content-wrapper flex-1 flex flex-col min-h-0" }, [
+        titleBar,
         m(
           "main",
           {
-            class: "app-content flex-1 overflow-y-auto p-6",
+            class: "app-content flex-1 overflow-y-auto px-8 py-6",
             "data-slot": "conversation-content",
             onscroll: handleScrollEvent,
             oncreate: (mainVnode: m.VnodeDOM) => {

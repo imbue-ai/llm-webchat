@@ -69,44 +69,37 @@ export const MessageInput: m.Component<{ conversationId: string | null }> = {
     const streaming = isStreaming();
     const hasMessageText = messageText.trim().length > 0;
     const busy = sending || streaming;
-    const sendButtonLabel = sending ? "Sending…" : streaming ? "Generating…" : "Send";
+    const showSendButton = busy || hasMessageText;
 
-    return m("div", { class: "message-input mx-auto w-full max-w-(--width-message-column) flex items-center gap-3" }, [
-      m(
-        "div",
-        {
-          class:
-            "message-input-box flex-1 flex flex-col rounded-lg border border-border bg-surface focus-within:border-primary transition-colors",
-        },
-        [
-          m("textarea", {
-            class:
-              "message-input-textbox w-full resize-none bg-transparent px-4 pt-3 pb-1 text-sm text-text-primary placeholder:text-text-secondary focus:outline-none",
-            style: { overflowY: "hidden" },
-            placeholder: "Type a message…",
-            rows: 1,
-            value: messageText,
-            disabled: sending,
-            oncreate: (textareaVnode: m.VnodeDOM) => {
-              messageTextareaElement = textareaVnode.dom as HTMLTextAreaElement;
-              autoResizeTextarea(messageTextareaElement);
-              focusMessageTextarea();
-            },
-            onupdate: (textareaVnode: m.VnodeDOM) => {
-              messageTextareaElement = textareaVnode.dom as HTMLTextAreaElement;
-              autoResizeTextarea(messageTextareaElement);
-            },
-            onremove: () => {
-              messageTextareaElement = null;
-            },
-            oninput: (event: Event) => {
-              const textarea = event.target as HTMLTextAreaElement;
-              messageText = textarea.value;
-              autoResizeTextarea(textarea);
-            },
-            onkeydown: handleKeydown,
-          }),
-          m("div", { class: "message-input-toolbar flex justify-end px-3 pb-2" }, [
+    return m("div", { class: "message-input mx-auto w-full max-w-(--width-message-column)" }, [
+      m("div", { class: "message-input-box flex flex-col" }, [
+        m("textarea", {
+          class: "message-input-textbox w-full resize-none focus:outline-none",
+          placeholder: "Type a message…",
+          rows: 1,
+          value: messageText,
+          disabled: sending,
+          oncreate: (textareaVnode: m.VnodeDOM) => {
+            messageTextareaElement = textareaVnode.dom as HTMLTextAreaElement;
+            autoResizeTextarea(messageTextareaElement);
+            focusMessageTextarea();
+          },
+          onupdate: (textareaVnode: m.VnodeDOM) => {
+            messageTextareaElement = textareaVnode.dom as HTMLTextAreaElement;
+            autoResizeTextarea(messageTextareaElement);
+          },
+          onremove: () => {
+            messageTextareaElement = null;
+          },
+          oninput: (event: Event) => {
+            const textarea = event.target as HTMLTextAreaElement;
+            messageText = textarea.value;
+            autoResizeTextarea(textarea);
+          },
+          onkeydown: handleKeydown,
+        }),
+        m("div", { class: "message-input-toolbar" }, [
+          m("div", { class: "message-input-toolbar-left" }, [
             m(ModelSelector, {
               selectedModelId,
               disabled: busy,
@@ -116,20 +109,29 @@ export const MessageInput: m.Component<{ conversationId: string | null }> = {
               },
             }),
           ]),
-        ],
-      ),
-      m(
-        "button",
-        {
-          class: [
-            "message-input-send-button inline-flex w-36 items-center justify-center gap-2 rounded-lg px-5 py-3 text-sm font-medium text-white transition-colors",
-            busy ? "bg-primary/50 cursor-not-allowed" : "bg-primary hover:bg-primary-hover cursor-pointer",
-          ].join(" "),
-          disabled: busy || !hasMessageText,
-          onclick: handleSend,
-        },
-        busy ? [m(Spinner), sendButtonLabel] : sendButtonLabel,
-      ),
+          m(
+            "button",
+            {
+              class: [
+                "message-input-send-button",
+                busy ? "message-input-send-button--busy" : "",
+                showSendButton ? "" : "message-input-send-button--hidden",
+              ]
+                .filter(Boolean)
+                .join(" "),
+              disabled: busy || !hasMessageText,
+              onclick: handleSend,
+            },
+            busy
+              ? m(Spinner)
+              : hasMessageText
+                ? m.trust(
+                    '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><path d="M5 12l7-7 7 7"/></svg>',
+                  )
+                : null,
+          ),
+        ]),
+      ]),
     ]);
   },
 };

@@ -5,6 +5,7 @@ class Conversation(BaseModel, frozen=True):
     id: str
     name: str
     model: str
+    latest_response_datetime_utc: str | None = None
 
 
 class ConversationListResponse(BaseModel, frozen=True):

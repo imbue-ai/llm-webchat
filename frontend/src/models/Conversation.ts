@@ -6,6 +6,7 @@ export interface Conversation {
   id: string;
   name: string;
   model: string;
+  latest_response_datetime_utc: string | null;
 }
 
 interface ConversationListResponse {

@@ -30,28 +30,28 @@ function iconButton(label: string, onclick: () => void, svgPath: string): m.Vnod
 
 export const Sidebar: m.Component = {
   view() {
-    const sidebarClass = [
-      "app-sidebar border-r border-border bg-surface-secondary p-4",
-      collapsed ? "app-sidebar--collapsed" : "",
-    ]
-      .filter(Boolean)
-      .join(" ");
+    const sidebarClass = ["app-sidebar", collapsed ? "app-sidebar--collapsed" : ""].filter(Boolean).join(" ");
 
     if (isSlotClaimed("sidebar")) {
       return m("aside", { class: sidebarClass, "data-slot": "sidebar" });
     }
 
-    const collapsedRail = m("div", { class: "sidebar-collapsed-content" }, [
-      iconButton("Expand sidebar", toggle, ICON_PANEL_LEFT_OPEN),
-      iconButton("New conversation", navigateToNewConversation, ICON_PLUS),
+    return m("aside", { class: sidebarClass, "data-slot": "sidebar" }, [
+      m("div", { class: "sidebar-collapsed-content" }, [
+        iconButton("Expand sidebar", toggle, ICON_PANEL_LEFT_OPEN),
+        iconButton("New conversation", navigateToNewConversation, ICON_PLUS),
+      ]),
+      m("div", { class: "sidebar-expanded-content flex flex-col flex-1 min-h-0" }, [
+        m("div", { class: "sidebar-branding-row" }, [
+          m("span", { class: "sidebar-branding-title" }, "LLM Webchat"),
+          iconButton("Collapse sidebar", toggle, ICON_PANEL_LEFT_CLOSE),
+        ]),
+        m("div", { class: "sidebar-new-conversation-row" }, [
+          m("span", { class: "sidebar-new-conversation-label" }, "New conversation"),
+          iconButton("New conversation", navigateToNewConversation, ICON_PLUS),
+        ]),
+        m(ConversationSelector),
+      ]),
     ]);
-
-    const collapseButton = iconButton("Collapse sidebar", toggle, ICON_PANEL_LEFT_CLOSE);
-
-    const expandedContent = m("div", { class: "sidebar-expanded-content flex flex-col flex-1 min-h-0" }, [
-      m(ConversationSelector, { collapseButton }),
-    ]);
-
-    return m("aside", { class: sidebarClass, "data-slot": "sidebar" }, [collapsedRail, expandedContent]);
   },
 };
