@@ -227,20 +227,14 @@ export function MessageList(): m.Component<{ conversationId: string | null }> {
   }
 
   function syncModelSelection(conversationId: string): void {
-    const streamingMessage = getStreamingMessage(conversationId);
-    if (streamingMessage?.model) {
-      setSelectedModelId(streamingMessage.model);
-      modelSyncedForConversation = conversationId;
-      return;
-    }
-
     if (modelSyncedForConversation === conversationId) {
       return;
     }
 
     const lastModel = getLastResponseModel(conversationId);
-    if (lastModel) {
-      setSelectedModelId(lastModel);
+    const modelToSync = lastModel || getConversationModel(conversationId);
+    if (modelToSync) {
+      setSelectedModelId(modelToSync);
       modelSyncedForConversation = conversationId;
     }
   }
