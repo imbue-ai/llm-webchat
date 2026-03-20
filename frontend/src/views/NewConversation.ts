@@ -4,7 +4,7 @@ import { createConversationAndSend } from "../models/Conversation";
 import { startStreamingMessage } from "../models/StreamingMessage";
 import { getDefaultModelId, persistSelectedModelId } from "../models/Model";
 import { ModelSelector } from "./ModelSelector";
-import { Spinner } from "./Spinner";
+import logoUrl from "../../media/logo_raw.png";
 
 const MAX_TEXTAREA_HEIGHT_PX = 200;
 
@@ -60,7 +60,6 @@ function renderForm(): m.Vnode {
   }
 
   const hasMessageText = messageText.trim().length > 0;
-  const showSendButton = creating || hasMessageText;
 
   return m("div", { class: "new-conversation flex items-center justify-center h-full" }, [
     m("div", { class: "new-conversation-form w-full max-w-(--width-message-column) flex flex-col gap-4 px-8" }, [
@@ -98,27 +97,28 @@ function renderForm(): m.Vnode {
                 },
               }),
             ]),
-            m(
-              "button",
-              {
-                class: [
-                  "new-conversation-send-button",
-                  creating ? "new-conversation-send-button--busy" : "",
-                  showSendButton ? "" : "new-conversation-send-button--hidden",
-                ]
-                  .filter(Boolean)
-                  .join(" "),
-                disabled: creating || !hasMessageText,
-                onclick: handleCreateConversation,
-              },
-              creating
-                ? m(Spinner)
-                : hasMessageText
-                  ? m.trust(
+            creating
+              ? m("img", {
+                  class: "message-input-logo message-input-logo--busy",
+                  src: logoUrl,
+                  alt: "Creating…",
+                })
+              : hasMessageText
+                ? m(
+                    "button",
+                    {
+                      class: "new-conversation-send-button",
+                      onclick: handleCreateConversation,
+                    },
+                    m.trust(
                       '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><path d="M5 12l7-7 7 7"/></svg>',
-                    )
-                  : null,
-            ),
+                    ),
+                  )
+                : m("img", {
+                    class: "message-input-logo",
+                    src: logoUrl,
+                    alt: "LLM Webchat",
+                  }),
           ]),
         ]),
       ]),

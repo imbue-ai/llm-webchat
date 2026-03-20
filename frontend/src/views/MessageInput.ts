@@ -3,7 +3,7 @@ import { clearStreamingMessage, isStreaming } from "../models/StreamingMessage";
 import { sendMessage } from "../models/Response";
 import { getDefaultModelId, persistSelectedModelId } from "../models/Model";
 import { ModelSelector } from "./ModelSelector";
-import { Spinner } from "./Spinner";
+import logoUrl from "../../media/logo_raw.png";
 
 const MAX_TEXTAREA_HEIGHT_PX = 200;
 
@@ -69,7 +69,6 @@ export const MessageInput: m.Component<{ conversationId: string | null }> = {
     const streaming = isStreaming();
     const hasMessageText = messageText.trim().length > 0;
     const busy = sending || streaming;
-    const showSendButton = busy || hasMessageText;
 
     return m("div", { class: "message-input mx-auto w-full max-w-(--width-message-column)" }, [
       m("div", { class: "message-input-box flex flex-col" }, [
@@ -109,27 +108,28 @@ export const MessageInput: m.Component<{ conversationId: string | null }> = {
               },
             }),
           ]),
-          m(
-            "button",
-            {
-              class: [
-                "message-input-send-button",
-                busy ? "message-input-send-button--busy" : "",
-                showSendButton ? "" : "message-input-send-button--hidden",
-              ]
-                .filter(Boolean)
-                .join(" "),
-              disabled: busy || !hasMessageText,
-              onclick: handleSend,
-            },
-            busy
-              ? m(Spinner)
-              : hasMessageText
-                ? m.trust(
+          busy
+            ? m("img", {
+                class: "message-input-logo message-input-logo--busy",
+                src: logoUrl,
+                alt: "Generating…",
+              })
+            : hasMessageText
+              ? m(
+                  "button",
+                  {
+                    class: "message-input-send-button",
+                    onclick: handleSend,
+                  },
+                  m.trust(
                     '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><path d="M5 12l7-7 7 7"/></svg>',
-                  )
-                : null,
-          ),
+                  ),
+                )
+              : m("img", {
+                  class: "message-input-logo",
+                  src: logoUrl,
+                  alt: "LLM Webchat",
+                }),
         ]),
       ]),
     ]);

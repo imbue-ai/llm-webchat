@@ -325,13 +325,29 @@ body {
   background: var(--color-accent-hover);
 }
 
-.message-input-send-button--busy {
-  cursor: not-allowed;
+.message-input-logo {
+  width: 32px;
+  height: 32px;
+  opacity: 0.28;
+  flex-shrink: 0;
+  user-select: none;
+  pointer-events: none;
+  transition: opacity 300ms;
 }
 
-.message-input-send-button--hidden {
-  opacity: 0;
-  visibility: hidden;
+.message-input-logo--busy {
+  opacity: 0.28;
+  animation: logo-breathe 2s ease-in-out infinite;
+}
+
+@keyframes logo-breathe {
+  0%,
+  100% {
+    transform: scale(0.8);
+  }
+  50% {
+    transform: scale(1);
+  }
 }
 
 /* ── Model selector ── */
@@ -496,15 +512,6 @@ body {
 
 .new-conversation-send-button:hover:not(:disabled) {
   background: var(--color-accent-hover);
-}
-
-.new-conversation-send-button--busy {
-  cursor: not-allowed;
-}
-
-.new-conversation-send-button--hidden {
-  opacity: 0;
-  visibility: hidden;
 }
 
 .system-prompt-toggle {
