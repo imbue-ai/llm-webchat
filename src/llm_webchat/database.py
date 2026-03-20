@@ -30,24 +30,36 @@ def list_conversations(
         config = load_config()
 
     allowed_ids = config.llm_webchat_conversation_ids
+    has_responses_table = "responses" in database.table_names()
 
+    if has_responses_table:
+        latest_response_column = (
+            "(SELECT MAX(r.datetime_utc) FROM responses r WHERE r.conversation_id = c.id)"
+            " AS latest_response_datetime_utc"
+        )
+    else:
+        latest_response_column = "NULL AS latest_response_datetime_utc"
+
+    params: list[str | int] = []
+    where_clause = ""
     if allowed_ids is not None:
         placeholders = ",".join("?" for _ in allowed_ids)
-        rows = database.execute(
-            f"SELECT id, name, model FROM conversations WHERE id IN ({placeholders}) ORDER BY rowid DESC LIMIT ?",
-            allowed_ids + [count],
-        ).fetchall()
-    else:
-        rows = database.execute(
-            "SELECT id, name, model FROM conversations ORDER BY rowid DESC LIMIT ?",
-            [count],
-        ).fetchall()
+        where_clause = f" WHERE c.id IN ({placeholders})"
+        params.extend(allowed_ids)
+    params.append(count)
+
+    rows = database.execute(
+        f"SELECT c.id, c.name, c.model, {latest_response_column}"
+        f" FROM conversations c{where_clause} ORDER BY c.rowid DESC LIMIT ?",
+        params,
+    ).fetchall()
 
     return [
         Conversation(
             id=row["id"],
             name=row["name"] or "",
             model=row["model"] or "",
+            latest_response_datetime_utc=row["latest_response_datetime_utc"],
         )
         for row in rows
     ]

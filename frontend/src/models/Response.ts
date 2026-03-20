@@ -49,6 +49,28 @@ export function getLastResponseModel(conversationId: string): string | null {
   return model || null;
 }
 
+export function appendSyntheticResponse(
+  conversationId: string,
+  prompt: string,
+  response: string,
+  model: string | null,
+): void {
+  const syntheticItem: ResponseItem = {
+    id: `streaming-${Date.now()}`,
+    model: model ?? "",
+    prompt,
+    system: null,
+    response,
+    conversation_id: conversationId,
+    datetime_utc: new Date().toISOString(),
+    duration_ms: null,
+    input_tokens: null,
+    output_tokens: null,
+  };
+  const existing = responses[conversationId] ?? [];
+  responses[conversationId] = [...existing, syntheticItem];
+}
+
 export async function fetchResponses(conversationId: string): Promise<ResponseItem[]> {
   notFoundConversationIds.delete(conversationId);
 

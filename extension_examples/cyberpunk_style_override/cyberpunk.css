@@ -13,16 +13,25 @@
 /* ── Theme variable overrides ─────────────────────────────────── */
 
 :root {
-  --color-primary: #ff2d95;
-  --color-primary-hover: #ff6eb4;
-  --color-surface: #0b0018;
-  --color-surface-secondary: #16002e;
+  --color-bg: #0b0018;
+  --color-bg-sidebar: #10002a;
+  --color-bg-hover: #1a003a;
+  --color-bg-active: #2a0050;
+  --color-bg-user-bubble: #1a0040;
+  --color-bg-composer: #0d0020;
   --color-text-primary: #e0d6ff;
   --color-text-secondary: #8a7caa;
+  --color-text-faint: #5a4a7a;
   --color-border: #2e1a52;
-  --color-user-bubble-bg: #1a0040;
-  --color-user-bubble-text: #00ffcc;
+  --color-border-faint: #1e1042;
+  --color-accent: #ff2d95;
+  --color-accent-hover: #ff6eb4;
+  --color-accent-light: #ff2d9520;
+  --color-surface: #0b0018;
+  --color-surface-secondary: #16002e;
   --font-family-base: "JetBrains Mono", "Fira Code", ui-monospace, monospace;
+  --font-family-heading: "JetBrains Mono", "Fira Code", ui-monospace, monospace;
+  --font-family-mono: "JetBrains Mono", "Fira Code", ui-monospace, monospace;
   --width-sidebar: 18rem;
 }
 
@@ -93,7 +102,7 @@ body::after {
   box-shadow: 0 0 8px #ff2d9540;
 }
 
-.conversation-selector-title {
+.sidebar-branding-title {
   color: #00ffcc !important;
   text-transform: uppercase;
   letter-spacing: 0.1em;
@@ -253,42 +262,44 @@ body::after {
   border-top: 1px solid #2e1a52 !important;
 }
 
-.message-input textarea,
-.new-conversation-input textarea {
+/* Composer box (the card that wraps textarea + toolbar) */
+.message-input-box,
+.new-conversation-input-box {
   background: #0d0020 !important;
   border: 1px solid #2e1a52 !important;
-  color: #e0d6ff !important;
-  caret-color: #ff2d95;
-  border-radius: 0.75rem !important;
+  box-shadow: 0 0 20px #0008;
   transition: border-color 200ms, box-shadow 200ms;
 }
 
-.message-input textarea:focus,
-.new-conversation-input textarea:focus {
+.message-input-box:focus-within,
+.new-conversation-input-box:focus-within {
   border-color: #ff2d95 !important;
   box-shadow: 0 0 16px #ff2d9530 !important;
-  outline: none;
 }
 
-.message-input textarea::placeholder,
-.new-conversation-input textarea::placeholder {
+.message-input-textbox,
+.new-conversation-textbox {
+  color: #e0d6ff !important;
+  caret-color: #ff2d95;
+}
+
+.message-input-textbox::placeholder,
+.new-conversation-textbox::placeholder {
   color: #5a4a7a;
 }
 
 /* Send button */
-.message-input button,
-.new-conversation-input button {
+.message-input-send-button,
+.new-conversation-send-button {
   background: linear-gradient(135deg, #ff2d95, #cc0066) !important;
   color: #fff !important;
   border: none !important;
   box-shadow: 0 0 16px #ff2d9540;
   transition: all 200ms;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
 }
 
-.message-input button:hover,
-.new-conversation-input button:hover {
+.message-input-send-button:hover,
+.new-conversation-send-button:hover {
   background: linear-gradient(135deg, #ff6eb4, #ff2d95) !important;
   box-shadow: 0 0 24px #ff2d9560;
   transform: translateY(-1px);
@@ -303,7 +314,7 @@ body::after {
 }
 
 /* Model selector */
-.model-selector-label {
+.model-selector-trigger {
   color: #8a7caa !important;
   border: 1px solid #2e1a52;
   border-radius: 1rem;
@@ -311,7 +322,7 @@ body::after {
   transition: all 200ms;
 }
 
-.model-selector-label:hover {
+.model-selector-trigger:hover {
   border-color: #ff2d95;
   color: #ff2d95 !important;
   box-shadow: 0 0 8px #ff2d9520;

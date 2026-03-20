@@ -1,97 +1,112 @@
 import m from "mithril";
 import { isSlotClaimed } from "../slots";
-import { fetchConversations, getConversations, getLoadingError } from "../models/Conversation";
-import { getSelectedConversationId, navigateToNewConversation, selectConversation } from "../navigation";
+import { fetchConversations, getConversations, getLoadingError, type Conversation } from "../models/Conversation";
+import { getSelectedConversationId, selectConversation } from "../navigation";
 import { EmptySlot } from "./EmptySlot";
 
-export interface ConversationSelectorAttrs {
-  collapseButton?: m.Vnode | null;
+function formatRelativeTimestamp(datetimeUtc: string | null): string {
+  if (datetimeUtc === null || datetimeUtc === "") {
+    return "";
+  }
+
+  const hasTimezone = /Z|[+-]\d{2}:\d{2}$/.test(datetimeUtc);
+  const date = new Date(hasTimezone ? datetimeUtc : datetimeUtc + "Z");
+  const now = new Date();
+  const diffMilliseconds = now.getTime() - date.getTime();
+  const diffMinutes = Math.floor(diffMilliseconds / 60000);
+  const diffHours = Math.floor(diffMilliseconds / 3600000);
+  const diffDays = Math.floor(diffMilliseconds / 86400000);
+
+  if (diffMinutes < 1) {
+    return "just now";
+  }
+  if (diffMinutes < 60) {
+    return `${diffMinutes} min ago`;
+  }
+  if (diffHours < 24) {
+    return diffHours === 1 ? "1 hour ago" : `${diffHours} hours ago`;
+  }
+  if (diffDays === 1) {
+    return "Yesterday";
+  }
+  if (diffDays < 7) {
+    return `${diffDays} days ago`;
+  }
+
+  return date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }
 
-export const ConversationSelector: m.Component<ConversationSelectorAttrs> = {
+function renderConversationItem(conversation: Conversation, isActive: boolean, isClaimed: boolean): m.Vnode {
+  const itemClass = ["conversation-selector-item", isActive ? "conversation-selector-item--active" : ""]
+    .filter(Boolean)
+    .join(" ");
+
+  return m(
+    "li",
+    {
+      key: conversation.id,
+      class: itemClass,
+      "data-slot": "conversation-selector-item",
+      "data-conversation-id": conversation.id,
+      onclick: () => selectConversation(conversation.id),
+    },
+    isClaimed
+      ? null
+      : [
+          m("div", { class: "conversation-selector-item-name" }, conversation.name || "Untitled conversation"),
+          m("div", { class: "conversation-selector-item-meta" }, [
+            m("span", { class: "conversation-selector-item-model" }, conversation.model),
+            conversation.latest_response_datetime_utc
+              ? m(
+                  "span",
+                  { class: "conversation-selector-item-time" },
+                  formatRelativeTimestamp(conversation.latest_response_datetime_utc),
+                )
+              : null,
+          ]),
+        ],
+  );
+}
+
+export const ConversationSelector: m.Component = {
   oninit() {
     fetchConversations();
   },
-  view(vnode: m.Vnode<ConversationSelectorAttrs>) {
+  view() {
     const currentConversationId = getSelectedConversationId();
-    const collapseButton = vnode.attrs.collapseButton ?? null;
     const conversations = getConversations();
     const loadingError = getLoadingError();
-
-    const sidebarHeaderClaimed = isSlotClaimed("sidebar-header");
-    const sidebarHeader = m(
-      "div",
-      { "data-slot": "sidebar-header" },
-      sidebarHeaderClaimed
-        ? null
-        : [
-            m("div", { class: "sidebar-header-row flex items-center justify-between" }, [
-              m(
-                "h2",
-                { class: "conversation-selector-title text-lg font-semibold text-text-primary" },
-                "Conversations",
-              ),
-              collapseButton,
-            ]),
-            m(
-              "button",
-              {
-                class: [
-                  "new-conversation-button mt-3 mb-3 w-full rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors cursor-pointer",
-                  "bg-primary hover:bg-primary-hover",
-                ].join(" "),
-                onclick: navigateToNewConversation,
-              },
-              "+ New Conversation",
-            ),
-          ],
-    );
-
     const conversationSelectorItemClaimed = isSlotClaimed("conversation-selector-item");
 
-    return m("div", { class: "conversation-selector", "data-slot": "conversation-selector" }, [
-      sidebarHeader,
-      m(EmptySlot, { name: "sidebar-before-list" }),
-      loadingError
-        ? m("p", { class: "conversation-selector-error mt-2 text-sm text-red-500" }, `Error: ${loadingError}`)
-        : conversations.length === 0
-          ? m("p", { class: "conversation-selector-empty mt-2 text-sm text-text-secondary" }, "No conversations yet.")
-          : m(
-              "ul",
-              { class: "conversation-selector-list mt-2 space-y-1" },
-              conversations.map((conversation) =>
+    return m(
+      "div",
+      { class: "conversation-selector flex flex-col flex-1 min-h-0", "data-slot": "conversation-selector" },
+      [
+        m(EmptySlot, { name: "sidebar-before-list" }),
+        loadingError
+          ? m("p", { class: "conversation-selector-error mt-2 text-sm text-red-500" }, `Error: ${loadingError}`)
+          : conversations.length === 0
+            ? m(
+                "p",
+                { class: "conversation-selector-empty mt-2 px-5 text-sm text-text-secondary" },
+                "No conversations yet.",
+              )
+            : m(
+                "div",
+                { class: "conversation-selector-list-wrapper flex-1 overflow-y-auto" },
                 m(
-                  "li",
-                  {
-                    key: conversation.id,
-                    class: [
-                      "conversation-selector-item",
-                      "cursor-pointer rounded px-3 py-2 text-sm transition-colors",
-                      conversation.id === currentConversationId
-                        ? "bg-primary/10 text-primary font-medium"
-                        : "text-text-secondary hover:bg-surface-secondary hover:text-text-primary",
-                    ].join(" "),
-                    "data-slot": "conversation-selector-item",
-                    "data-conversation-id": conversation.id,
-                    onclick: () => selectConversation(conversation.id),
-                  },
-                  conversationSelectorItemClaimed
-                    ? null
-                    : [
-                        m(
-                          "div",
-                          { class: "conversation-selector-item-name truncate" },
-                          conversation.name || "Untitled conversation",
-                        ),
-                        m(
-                          "div",
-                          { class: "conversation-selector-item-model mt-0.5 truncate text-xs text-text-secondary" },
-                          conversation.model,
-                        ),
-                      ],
+                  "ul",
+                  { class: "conversation-selector-list" },
+                  conversations.map((conversation) =>
+                    renderConversationItem(
+                      conversation,
+                      conversation.id === currentConversationId,
+                      conversationSelectorItemClaimed,
+                    ),
+                  ),
                 ),
               ),
-            ),
-    ]);
+      ],
+    );
   },
 };

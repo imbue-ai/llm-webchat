@@ -27,10 +27,10 @@ See the [style override](../extension_examples/cyberpunk_style_override/) exampl
 Plugins can run arbitrary JavaScript making arbitrary changes to the page. To make this easier, the page contains certain stable
 elements / containers called "slots" which plugins can use as anchor points:
 
-- `<div data-slot="header">` - the top header bar
+- `<div data-slot="header">` - the conversation header bar (shown when viewing a conversation; displays the conversation name and model badge by default)
 - `<div data-slot="header-actions">` - empty container inside the header (for buttons, indicators)
 - `<div data-slot="sidebar">` - the full sidebar
-- `<div data-slot="sidebar-header">` - the sidebar title, collapse button, and "New Conversation" button
+- `<div data-slot="sidebar-header">` - the sidebar branding row, collapse button, and "New conversation" row
 - `<div data-slot="sidebar-before-list">` - empty container between the sidebar header and the conversation list (for search, filters)
 - `<div data-slot="conversation-selector-item">` - an individual conversation entry in the sidebar
 - `<div data-slot="conversation-after-header">` - empty container below the header, above the message list (for banners, breadcrumbs)

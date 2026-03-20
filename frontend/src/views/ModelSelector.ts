@@ -4,49 +4,121 @@ import { fetchModels, getModels } from "../models/Model";
 interface ModelSelectorAttributes {
   selectedModelId: string | null;
   onSelect: (modelId: string) => void;
-  disabled?: boolean;
+}
+
+let open = false;
+
+function closeDropdown(): void {
+  open = false;
+  m.redraw();
+}
+
+function handleDocumentClick(event: MouseEvent): void {
+  const target = event.target as HTMLElement;
+  if (!target.closest(".model-selector-wrapper")) {
+    closeDropdown();
+  }
+}
+
+function scrollSelectedIntoView(dropdownElement: HTMLElement, selectedModelId: string | null): void {
+  if (selectedModelId === null) {
+    return;
+  }
+  const selectedOption = dropdownElement.querySelector(
+    `[data-model-id="${CSS.escape(selectedModelId)}"]`,
+  ) as HTMLElement | null;
+  if (selectedOption === null) {
+    return;
+  }
+
+  const optionHeight = selectedOption.offsetHeight;
+  if (optionHeight === 0) {
+    return;
+  }
+
+  const visibleHeight = dropdownElement.clientHeight;
+  const itemsVisible = Math.floor(visibleHeight / optionHeight);
+  const selectedIndex = Math.round(selectedOption.offsetTop / optionHeight);
+  const centeredStartIndex = Math.max(0, selectedIndex - Math.floor(itemsVisible / 2));
+  dropdownElement.scrollTop = centeredStartIndex * optionHeight;
 }
 
 export const ModelSelector: m.Component<ModelSelectorAttributes> = {
   oninit() {
     fetchModels();
   },
+  oncreate() {
+    document.addEventListener("click", handleDocumentClick);
+  },
+  onremove() {
+    document.removeEventListener("click", handleDocumentClick);
+  },
   view(vnode) {
-    if (getModels().length === 0) {
+    const models = getModels();
+    if (models.length === 0) {
       return null;
     }
 
-    const models = getModels();
     const selectedId = vnode.attrs.selectedModelId;
-    const isDisabled = vnode.attrs.disabled ?? false;
-    const handleSelectionChange = (event: Event): void => {
-      const select = event.target as HTMLSelectElement;
-      vnode.attrs.onSelect(select.value);
-      m.redraw();
-    };
+    const selectedModelExists = selectedId !== null && models.some((model) => model.model_id === selectedId);
 
-    return m("div", { class: "model-selector-wrapper relative inline-block" }, [
+    function handleToggle(event: Event): void {
+      event.stopPropagation();
+      open = !open;
+    }
+
+    function handleSelect(modelId: string): void {
+      vnode.attrs.onSelect(modelId);
+      open = false;
+    }
+
+    return m("div", { class: "model-selector-wrapper" }, [
       m(
-        "select",
+        "button",
         {
-          class: `model-selector-native absolute inset-0 w-full h-full opacity-0 ${isDisabled ? "cursor-not-allowed" : "cursor-pointer"}`,
-          value: selectedId ?? "",
-          disabled: isDisabled,
-          oninput: handleSelectionChange,
-          onchange: handleSelectionChange,
-        },
-        models.map((model) => m("option", { key: model.model_id, value: model.model_id }, model.model_id)),
-      ),
-      m(
-        "span",
-        {
-          class: `model-selector-label inline-flex items-center gap-1 text-xs transition-colors select-none ${isDisabled ? "text-text-secondary/50 cursor-not-allowed" : "text-text-secondary hover:text-text-primary cursor-pointer"}`,
+          class: "model-selector-trigger",
+          onclick: handleToggle,
+          type: "button",
         },
         [
-          m("span", { class: "model-selector-model-name" }, selectedId ?? ""),
-          m("span", { class: "model-selector-chevron text-[10px] leading-none" }, "▾"),
+          m(
+            "span",
+            { class: "model-selector-model-name" },
+            selectedModelExists ? selectedId : selectedId ? `${selectedId} (unavailable)` : "",
+          ),
+          m("span", { class: "model-selector-chevron" }, "▾"),
         ],
       ),
+      open
+        ? m("div", { class: "model-selector-dropdown" }, [
+            m(
+              "ul",
+              {
+                class: "model-selector-dropdown-list",
+                oncreate: (listVnode: m.VnodeDOM) => {
+                  scrollSelectedIntoView(listVnode.dom as HTMLElement, selectedId);
+                },
+              },
+              models.map((model) =>
+                m(
+                  "li",
+                  {
+                    key: model.model_id,
+                    "data-model-id": model.model_id,
+                    class: [
+                      "model-selector-option",
+                      model.model_id === selectedId ? "model-selector-option--selected" : "",
+                    ]
+                      .filter(Boolean)
+                      .join(" "),
+                    onclick: () => handleSelect(model.model_id),
+                  },
+                  model.model_id,
+                ),
+              ),
+            ),
+          ])
+        : null,
     ]);
   },
 };

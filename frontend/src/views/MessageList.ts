@@ -2,6 +2,7 @@ import m from "mithril";
 import { isSlotClaimed } from "../slots";
 import {
   ConversationNotFoundError,
+  appendSyntheticResponse,
   fetchResponses as fetchResponsesFromApi,
   getLastResponseModel,
   getResponsesForConversation,
@@ -10,15 +11,70 @@ import {
 } from "../models/Response";
 import {
   connectToStream,
+  consumeLastFinalizedMessage,
   disconnectFromStream,
   getStreamingMessage,
   type StreamingMessage,
 } from "../models/StreamingMessage";
+import { getConversations } from "../models/Conversation";
 import { renderMarkdown } from "../markdown";
 import { EmptySlot } from "./EmptySlot";
 import { MessageInput, setSelectedModelId } from "./MessageInput";
 
 const SCROLL_BOTTOM_THRESHOLD_PX = 40;
+const SCROLL_TO_USER_MESSAGE_OFFSET_PX = 40;
+
+function measureContentAfterLastUserMessage(wrapper: HTMLElement, spacerElement: HTMLElement): number {
+  const userMessages = wrapper.querySelectorAll(".message-user");
+  const lastUserMessage = userMessages.length > 0 ? (userMessages[userMessages.length - 1] as HTMLElement) : null;
+  if (lastUserMessage === null) {
+    return 0;
+  }
+
+  const lastUserMessageBottom = lastUserMessage.offsetTop + lastUserMessage.offsetHeight;
+  const spacerTop = spacerElement.offsetTop;
+  return Math.max(0, spacerTop - lastUserMessageBottom);
+}
+
+function updateSpacerHeight(spacerElement: HTMLElement): void {
+  const scrollContainer = spacerElement.closest(".app-content") as HTMLElement | null;
+  if (scrollContainer === null) {
+    return;
+  }
+
+  const wrapper = spacerElement.closest(".message-list-wrapper") as HTMLElement | null;
+  if (wrapper === null) {
+    return;
+  }
+
+  const userMessages = wrapper.querySelectorAll(".message-user");
+  const lastUserMessage = userMessages.length > 0 ? (userMessages[userMessages.length - 1] as HTMLElement) : null;
+  const lastUserMessageHeight = lastUserMessage !== null ? lastUserMessage.offsetHeight : 0;
+
+  const contentAfterUserMessage = measureContentAfterLastUserMessage(wrapper, spacerElement);
+  const reservedHeight = lastUserMessageHeight + contentAfterUserMessage + SCROLL_TO_USER_MESSAGE_OFFSET_PX;
+  const spacerHeight = Math.max(0, scrollContainer.clientHeight - reservedHeight);
+  spacerElement.style.height = `${spacerHeight}px`;
+}
+
+function scrollToLastUserMessage(spacerElement: HTMLElement): void {
+  const scrollContainer = spacerElement.closest(".app-content") as HTMLElement | null;
+  if (scrollContainer === null) {
+    return;
+  }
+
+  const wrapper = spacerElement.closest(".message-list-wrapper") as HTMLElement | null;
+  if (wrapper === null) {
+    return;
+  }
+
+  const userMessages = wrapper.querySelectorAll(".message-user");
+  const lastUserMessage = userMessages.length > 0 ? (userMessages[userMessages.length - 1] as HTMLElement) : null;
+  if (lastUserMessage !== null) {
+    const targetScrollTop = lastUserMessage.offsetTop - scrollContainer.offsetTop - SCROLL_TO_USER_MESSAGE_OFFSET_PX;
+    scrollContainer.scrollTop = Math.max(0, targetScrollTop);
+  }
+}
 
 function getHashTargetId(): string | null {
   const hash = window.location.hash;
@@ -48,15 +104,27 @@ function scrollToBottom(element: HTMLElement): void {
   element.scrollTop = element.scrollHeight;
 }
 
+function getConversationName(conversationId: string | null): string {
+  if (!conversationId) {
+    return "";
+  }
+  const conversations = getConversations();
+  const conversation = conversations.find((c) => c.id === conversationId);
+  return conversation?.name || "Untitled conversation";
+}
+
+function getConversationModel(conversationId: string | null): string {
+  if (!conversationId) {
+    return "";
+  }
+  const conversations = getConversations();
+  const conversation = conversations.find((c) => c.id === conversationId);
+  return conversation?.model || "";
+}
+
 function renderUserMessage(prompt: string): m.Vnode {
-  return m("div", { class: "message message-user flex justify-end mb-6" }, [
-    m(
-      "div",
-      {
-        class: "message-user-bubble max-w-[85%] rounded-3xl bg-user-bubble-bg px-5 py-3 text-user-bubble-text",
-      },
-      [m("div", { class: "message-content whitespace-pre-wrap text-sm" }, prompt)],
-    ),
+  return m("div", { class: "message message-user" }, [
+    m("div", { class: "message-user-bubble" }, [m("div", { class: "message-content whitespace-pre-wrap" }, prompt)]),
   ]);
 }
 
@@ -66,43 +134,29 @@ function renderAssistantMessage(responseItem: ResponseItem): m.Vnode {
     "div",
     {
       id: responseItem.id,
-      class: "message message-assistant mb-6",
+      class: "message message-assistant",
       "data-slot": "message",
       "data-message-id": responseItem.id,
     },
     messageClaimed
       ? null
-      : [
-          m(
-            "div",
-            {
-              class: "message-content markdown-content text-sm text-text-primary leading-relaxed",
-            },
-            m.trust(renderMarkdown(responseItem.response)),
-          ),
-        ],
+      : [m("div", { class: "message-content markdown-content" }, m.trust(renderMarkdown(responseItem.response)))],
   );
 }
 
 function renderStreamingIndicator(): m.Vnode {
   return m("div", { class: "streaming-indicator inline-flex items-center gap-2 mt-4" }, [
-    m("span", { class: "streaming-dot streaming-dot-1 w-2 h-2 rounded-full bg-text-secondary" }),
-    m("span", { class: "streaming-dot streaming-dot-2 w-2 h-2 rounded-full bg-text-secondary" }),
-    m("span", { class: "streaming-dot streaming-dot-3 w-2 h-2 rounded-full bg-text-secondary" }),
+    m("span", { class: "streaming-dot streaming-dot-1 w-2 h-2 rounded-full bg-accent" }),
+    m("span", { class: "streaming-dot streaming-dot-2 w-2 h-2 rounded-full bg-accent" }),
+    m("span", { class: "streaming-dot streaming-dot-3 w-2 h-2 rounded-full bg-accent" }),
   ]);
 }
 
 function renderStreamingAssistantMessage(content: string): m.Vnode {
   const hasContent = content.length > 0;
-  return m("div", { class: "message message-assistant message-streaming mb-6" }, [
+  return m("div", { class: "message message-assistant message-streaming" }, [
     hasContent
-      ? m(
-          "div",
-          {
-            class: "message-content markdown-content text-sm text-text-primary leading-relaxed",
-          },
-          m.trust(renderMarkdown(content)),
-        )
+      ? m("div", { class: "message-content markdown-content" }, m.trust(renderMarkdown(content)))
       : renderStreamingIndicator(),
   ]);
 }
@@ -111,13 +165,7 @@ function renderErrorMessage(errorContent: string, partialAssistantContent: strin
   const children: m.Children[] = [];
   if (partialAssistantContent) {
     children.push(
-      m(
-        "div",
-        {
-          class: "message-content markdown-content text-sm text-text-primary mb-3",
-        },
-        m.trust(renderMarkdown(partialAssistantContent)),
-      ),
+      m("div", { class: "message-content markdown-content mb-3" }, m.trust(renderMarkdown(partialAssistantContent))),
     );
   }
   children.push(
@@ -125,7 +173,7 @@ function renderErrorMessage(errorContent: string, partialAssistantContent: strin
       "div",
       {
         class:
-          "message-error-banner flex items-center gap-2 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700 dark:bg-red-950 dark:border-red-800 dark:text-red-300",
+          "message-error-banner flex items-center gap-2 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700",
       },
       [m("span", { class: "message-error-icon" }, "⚠"), m("span", errorContent)],
     ),
@@ -143,6 +191,8 @@ export function MessageList(): m.Component<{ conversationId: string | null }> {
   let modelSyncedForConversation: string | null = null;
   let previousScrollTop = 0;
   let previousLocationHash = window.location.hash;
+  let userSubmittedInSession = false;
+  let pendingScrollToUserMessage = false;
 
   async function fetchConversation(conversationId: string): Promise<void> {
     loading = true;
@@ -177,20 +227,14 @@ export function MessageList(): m.Component<{ conversationId: string | null }> {
   }
 
   function syncModelSelection(conversationId: string): void {
-    const streamingMessage = getStreamingMessage(conversationId);
-    if (streamingMessage?.model) {
-      setSelectedModelId(streamingMessage.model);
-      modelSyncedForConversation = conversationId;
-      return;
-    }
-
     if (modelSyncedForConversation === conversationId) {
       return;
     }
 
     const lastModel = getLastResponseModel(conversationId);
-    if (lastModel) {
-      setSelectedModelId(lastModel);
+    const modelToSync = lastModel || getConversationModel(conversationId);
+    if (modelToSync) {
+      setSelectedModelId(modelToSync);
       modelSyncedForConversation = conversationId;
     }
   }
@@ -328,11 +372,37 @@ export function MessageList(): m.Component<{ conversationId: string | null }> {
       }
     }
 
-    return m(
-      "div",
-      { class: "message-list mx-auto w-full max-w-(--width-message-column) flex flex-col py-6" },
-      messageNodes,
-    );
+    const shouldScroll = pendingScrollToUserMessage;
+    const spacer = userSubmittedInSession
+      ? m("div", {
+          class: "message-list-scroll-spacer",
+          oncreate: (spacerVnode: m.VnodeDOM) => {
+            const element = spacerVnode.dom as HTMLElement;
+            updateSpacerHeight(element);
+            if (shouldScroll) {
+              scrollToLastUserMessage(element);
+              pendingScrollToUserMessage = false;
+            }
+          },
+          onupdate: (spacerVnode: m.VnodeDOM) => {
+            const element = spacerVnode.dom as HTMLElement;
+            updateSpacerHeight(element);
+            if (shouldScroll) {
+              scrollToLastUserMessage(element);
+              pendingScrollToUserMessage = false;
+            }
+          },
+        })
+      : null;
+
+    return m("div", { class: "message-list-wrapper" }, [
+      m(
+        "div",
+        { class: "message-list mx-auto w-full max-w-(--width-message-column) flex flex-col py-6" },
+        messageNodes,
+      ),
+      spacer,
+    ]);
   }
 
   return {
@@ -344,29 +414,56 @@ export function MessageList(): m.Component<{ conversationId: string | null }> {
       window.removeEventListener("hashchange", handleHashChange);
     },
 
-    onupdate() {
-      const currentStreamingMessage =
-        currentConversationId !== null ? getStreamingMessage(currentConversationId) : null;
-      if (previousStreamingMessage !== null && currentStreamingMessage === null) {
-        if (currentConversationId !== null) {
-          fetchConversation(currentConversationId);
-        }
-      }
-      previousStreamingMessage = currentStreamingMessage;
-    },
-
     view(vnode) {
       syncHashScrollState();
 
       const conversationId = vnode.attrs.conversationId;
+
+      const currentStreamingMessage = conversationId !== null ? getStreamingMessage(conversationId) : null;
+      if (previousStreamingMessage === null && currentStreamingMessage !== null) {
+        userSubmittedInSession = true;
+        pendingScrollToUserMessage = true;
+      }
+      if (previousStreamingMessage !== null && currentStreamingMessage === null) {
+        const finalizedMessage = consumeLastFinalizedMessage();
+        if (finalizedMessage !== null) {
+          appendSyntheticResponse(
+            finalizedMessage.conversationId,
+            finalizedMessage.userPrompt,
+            finalizedMessage.assistantContent,
+            finalizedMessage.model,
+          );
+        }
+      }
+      previousStreamingMessage = currentStreamingMessage;
       manageStreamConnection(conversationId);
       const conversationIsNotFound = conversationId !== null && isConversationNotFoundInStore(conversationId);
       const showFooter = conversationId === null || !conversationIsNotFound;
 
+      const conversationName = getConversationName(conversationId);
+      const conversationModel = getConversationModel(conversationId);
+
+      const titleBar = conversationId
+        ? m(
+            "header",
+            {
+              class: "app-header",
+              "data-slot": "header",
+            },
+            isSlotClaimed("header")
+              ? null
+              : [
+                  m("h1", { class: "app-header-title" }, conversationName),
+                  conversationModel ? m("span", { class: "app-header-model-badge" }, conversationModel) : null,
+                  m(EmptySlot, { name: "header-actions" }),
+                ],
+          )
+        : null;
+
       const footerElement = showFooter
         ? m(
             "footer",
-            { class: "app-footer border-t border-border px-6 py-3", "data-slot": "conversation-footer" },
+            { class: "app-footer", "data-slot": "conversation-footer" },
             isSlotClaimed("conversation-footer")
               ? null
               : [m(EmptySlot, { name: "conversation-before-input" }), m(MessageInput, { conversationId })],
@@ -374,10 +471,12 @@ export function MessageList(): m.Component<{ conversationId: string | null }> {
         : null;
 
       return m("div", { class: "app-content-wrapper flex-1 flex flex-col min-h-0" }, [
+        titleBar,
+        m(EmptySlot, { name: "conversation-after-header" }),
         m(
           "main",
           {
-            class: "app-content flex-1 overflow-y-auto p-6",
+            class: "app-content flex-1 overflow-y-auto px-8 py-6",
             "data-slot": "conversation-content",
             onscroll: handleScrollEvent,
             oncreate: (mainVnode: m.VnodeDOM) => {
