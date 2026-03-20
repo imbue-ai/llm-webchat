@@ -28,6 +28,7 @@
   --radius-base: 6px;
   --radius-bubble: 18px;
   --radius-composer: 16px;
+  --logo-url: url("./assets/logo_raw.png");
 }
 
 body {
@@ -333,6 +334,7 @@ body {
   user-select: none;
   pointer-events: none;
   transition: opacity 300ms;
+  background: var(--logo-url) center / contain no-repeat;
 }
 
 .message-input-logo--busy {

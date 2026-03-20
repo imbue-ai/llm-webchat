@@ -4,7 +4,6 @@ import { createConversationAndSend } from "../models/Conversation";
 import { startStreamingMessage } from "../models/StreamingMessage";
 import { getDefaultModelId, persistSelectedModelId } from "../models/Model";
 import { ModelSelector } from "./ModelSelector";
-import logoUrl from "../assets/logo_raw.png";
 
 const MAX_TEXTAREA_HEIGHT_PX = 200;
 
@@ -98,10 +97,10 @@ function renderForm(): m.Vnode {
               }),
             ]),
             creating
-              ? m("img", {
+              ? m("div", {
                   class: "message-input-logo message-input-logo--busy",
-                  src: logoUrl,
-                  alt: "Creating…",
+                  role: "img",
+                  "aria-label": "Creating…",
                 })
               : hasMessageText
                 ? m(
@@ -114,10 +113,10 @@ function renderForm(): m.Vnode {
                       '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><path d="M5 12l7-7 7 7"/></svg>',
                     ),
                   )
-                : m("img", {
+                : m("div", {
                     class: "message-input-logo",
-                    src: logoUrl,
-                    alt: "LLM Webchat",
+                    role: "img",
+                    "aria-label": "LLM Webchat",
                   }),
           ]),
         ]),
