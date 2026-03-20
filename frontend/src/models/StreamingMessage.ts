@@ -18,6 +18,7 @@ export interface StreamingMessage {
 }
 
 let streamingMessage: StreamingMessage | null = null;
+let lastFinalizedMessage: StreamingMessage | null = null;
 
 export function getStreamingMessage(conversationId: string): StreamingMessage | null {
   if (streamingMessage !== null && streamingMessage.conversationId === conversationId) {
@@ -48,8 +49,15 @@ export function appendStreamingDelta(content: string): void {
 
 export function finalizeStreamingMessage(): void {
   if (streamingMessage !== null && streamingMessage.error === null) {
+    lastFinalizedMessage = streamingMessage;
     streamingMessage = null;
   }
+}
+
+export function consumeLastFinalizedMessage(): StreamingMessage | null {
+  const message = lastFinalizedMessage;
+  lastFinalizedMessage = null;
+  return message;
 }
 
 export function markStreamingError(errorContent: string): void {

@@ -2,6 +2,7 @@ import m from "mithril";
 import { isSlotClaimed } from "../slots";
 import {
   ConversationNotFoundError,
+  appendSyntheticResponse,
   fetchResponses as fetchResponsesFromApi,
   getLastResponseModel,
   getResponsesForConversation,
@@ -10,6 +11,7 @@ import {
 } from "../models/Response";
 import {
   connectToStream,
+  consumeLastFinalizedMessage,
   disconnectFromStream,
   getStreamingMessage,
   type StreamingMessage,
@@ -337,21 +339,24 @@ export function MessageList(): m.Component<{ conversationId: string | null }> {
       window.removeEventListener("hashchange", handleHashChange);
     },
 
-    onupdate() {
-      const currentStreamingMessage =
-        currentConversationId !== null ? getStreamingMessage(currentConversationId) : null;
-      if (previousStreamingMessage !== null && currentStreamingMessage === null) {
-        if (currentConversationId !== null) {
-          fetchConversation(currentConversationId);
-        }
-      }
-      previousStreamingMessage = currentStreamingMessage;
-    },
-
     view(vnode) {
       syncHashScrollState();
 
       const conversationId = vnode.attrs.conversationId;
+
+      const currentStreamingMessage = conversationId !== null ? getStreamingMessage(conversationId) : null;
+      if (previousStreamingMessage !== null && currentStreamingMessage === null) {
+        const finalizedMessage = consumeLastFinalizedMessage();
+        if (finalizedMessage !== null) {
+          appendSyntheticResponse(
+            finalizedMessage.conversationId,
+            finalizedMessage.userPrompt,
+            finalizedMessage.assistantContent,
+            finalizedMessage.model,
+          );
+        }
+      }
+      previousStreamingMessage = currentStreamingMessage;
       manageStreamConnection(conversationId);
       const conversationIsNotFound = conversationId !== null && isConversationNotFoundInStore(conversationId);
       const showFooter = conversationId === null || !conversationIsNotFound;
