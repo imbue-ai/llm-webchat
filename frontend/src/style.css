@@ -721,9 +721,3 @@ body {
   background: var(--color-border);
   border-radius: 2px;
 }
-
-/* ── Spinner ── */
-.spinner {
-  border-color: rgba(255, 255, 255, 0.3);
-  border-top-color: white;
-}
