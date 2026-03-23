@@ -26,7 +26,7 @@ the root
 The following optional environment variables are recognized:
 
 - `LLM_WEBCHAT_CONVERSATION_IDS`: a comma-separated whitelist of conversations.
-- `LLM_WEBCHAT_JAVASCRIPT_PLUGINS`: a comma-separated list of .js files containing frontend plugins (see below for more details).
+- `LLM_WEBCHAT_JAVASCRIPT_PLUGINS`: a comma-separated list of .js files containing frontend plugins (see the [extension docs](./extensions.md) for more details).
 - `LLM_WEBCHAT_STATIC_PATHS`: a comma-separated list of additional file paths that should be served from `/plugins`.
 - `LLM_WEBCHAT_HOST`: the host address the server binds to. Defaults to `127.0.0.1`.
 - `LLM_WEBCHAT_PORT`: the port the server listens on. Defaults to `8000`.
