@@ -261,6 +261,7 @@ body {
 
 .message-input {
   gap: 0;
+  max-width: calc(var(--width-message-column) + 2 * var(--radius-composer));
 }
 
 .message-input-box {

@@ -24,8 +24,8 @@ See the [style override](../extension_examples/cyberpunk_style_override/) exampl
 
 ## Frontend plugins
 
-Plugins can run arbitrary JavaScript making arbitrary changes to the page. To make this easier, the page contains certain stable
-elements / containers called "slots" which plugins can use as anchor points:
+Plugins are any JavaScript files injected via the `LLM_WEBCHAT_JAVASCRIPT_PLUGINS` environment variable which expects a comma-separated list of local paths to .js files.
+They can run any code making arbitrary changes to the page. To make this easier, the page contains certain stable elements / containers called "slots" which plugins can use as anchor points:
 
 - `<div data-slot="header">` - the conversation header bar (shown when viewing a conversation; displays the conversation name and model badge by default)
 - `<div data-slot="header-actions">` - empty container inside the header (for buttons, indicators)
