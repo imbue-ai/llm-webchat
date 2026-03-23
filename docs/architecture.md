@@ -30,6 +30,7 @@ The following optional environment variables are recognized:
 - `LLM_WEBCHAT_STATIC_PATHS`: a comma-separated list of additional file paths that should be served from `/plugins`.
 - `LLM_WEBCHAT_HOST`: the host address the server binds to. Defaults to `127.0.0.1`.
 - `LLM_WEBCHAT_PORT`: the port the server listens on. Defaults to `8000`.
+- `LLM_WEBCHAT_TOOL_CHAIN_LIMIT`: maximum number of chained tool responses allowed per message. Defaults to `20`. Set to `0` for unlimited.
 
 ## Frontend
 

@@ -18,6 +18,7 @@ class Config(BaseSettings):
     llm_webchat_static_paths: list[str] | None = None
     llm_webchat_host: str = "127.0.0.1"
     llm_webchat_port: int = 8000
+    llm_webchat_tool_chain_limit: int = 20
 
     @field_validator(
         "llm_webchat_conversation_ids", "llm_webchat_javascript_plugins", "llm_webchat_static_paths", mode="before"

@@ -4,6 +4,7 @@ import { createConversationAndSend } from "../models/Conversation";
 import { startStreamingMessage } from "../models/StreamingMessage";
 import { getDefaultModelId, persistSelectedModelId } from "../models/Model";
 import { ModelSelector } from "./ModelSelector";
+import { ToolSelector } from "./ToolSelector";
 
 const MAX_TEXTAREA_HEIGHT_PX = 200;
 
@@ -12,6 +13,7 @@ let systemPromptText = "";
 let systemPromptExpanded = false;
 let creating = false;
 let selectedModelId: string | null = null;
+let selectedToolNames: string[] = [];
 
 function autoResizeTextarea(textarea: HTMLTextAreaElement): void {
   textarea.style.height = "auto";
@@ -30,12 +32,14 @@ async function handleCreateConversation(): Promise<void> {
 
   try {
     const systemPrompt = systemPromptText;
+    const tools = [...selectedToolNames];
 
     messageText = "";
     systemPromptText = "";
     systemPromptExpanded = false;
+    selectedToolNames = [];
 
-    const conversationId = await createConversationAndSend(trimmedMessage, modelId, systemPrompt);
+    const conversationId = await createConversationAndSend(trimmedMessage, modelId, systemPrompt, tools);
 
     startStreamingMessage(conversationId, trimmedMessage, modelId);
 
@@ -156,6 +160,16 @@ function renderForm(): m.Vnode {
             })
           : null,
       ]),
+      m(ToolSelector, {
+        selectedToolNames,
+        onToggle: (toolName: string) => {
+          if (selectedToolNames.includes(toolName)) {
+            selectedToolNames = selectedToolNames.filter((name) => name !== toolName);
+          } else {
+            selectedToolNames = [...selectedToolNames, toolName];
+          }
+        },
+      }),
     ]),
   ]);
 }
