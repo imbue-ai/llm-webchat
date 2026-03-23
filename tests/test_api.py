@@ -124,23 +124,24 @@ def test_list_responses_with_null_prompt(client: TestClient, test_database: sqli
 
 
 def _make_fake_popen(stdout_chunks: list[bytes], returncode: int = 0, stderr: bytes = b"") -> MagicMock:
+    import os
+
     mock_process = MagicMock()
     mock_process.returncode = returncode
     mock_process.wait = MagicMock()
 
-    read_calls = [*stdout_chunks, b""]
+    stdout_read_fd, stdout_write_fd = os.pipe()
+    for chunk in stdout_chunks:
+        os.write(stdout_write_fd, chunk)
+    os.close(stdout_write_fd)
+    mock_process.stdout = os.fdopen(stdout_read_fd, "rb")
 
-    def fake_read(size: int) -> bytes:
-        if read_calls:
-            return read_calls.pop(0)
-        return b""
+    stderr_read_fd, stderr_write_fd = os.pipe()
+    if stderr:
+        os.write(stderr_write_fd, stderr)
+    os.close(stderr_write_fd)
+    mock_process.stderr = os.fdopen(stderr_read_fd, "rb")
 
-    mock_process.stdout = MagicMock()
-    mock_process.stdout.read = fake_read
-    stderr_lines = [line + b"\n" for line in stderr.split(b"\n") if line] if stderr else []
-    mock_process.stderr = MagicMock()
-    mock_process.stderr.read = MagicMock(return_value=stderr)
-    mock_process.stderr.__iter__ = MagicMock(return_value=iter(stderr_lines))
     return mock_process
 
 

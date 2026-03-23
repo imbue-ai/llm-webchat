@@ -691,6 +691,47 @@ body {
   color: var(--color-text-secondary);
 }
 
+/* ── Collapsible tool call blocks ── */
+.markdown-content .tool-call-block {
+  cursor: pointer;
+  margin-top: 0.75em;
+  margin-bottom: 0.75em;
+}
+
+.markdown-content .tool-call-block pre {
+  margin: 0;
+  padding-left: 28px;
+  position: relative;
+}
+
+.markdown-content .tool-call-block pre::before {
+  content: "▸";
+  position: absolute;
+  left: 10px;
+  top: 14px;
+  font-family: var(--font-family-mono);
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--color-text-faint);
+  transition: transform 150ms;
+  pointer-events: none;
+}
+
+.markdown-content .tool-call-block--expanded pre::before {
+  transform: rotate(90deg);
+}
+
+.markdown-content .tool-call-block pre code {
+  display: block;
+}
+
+.markdown-content .tool-call-block:not(.tool-call-block--expanded) pre code {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-height: 1.55em;
+}
+
 .markdown-content hr {
   margin-top: 1.25em;
   margin-bottom: 1.25em;

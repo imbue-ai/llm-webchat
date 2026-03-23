@@ -1,7 +1,9 @@
 import codecs
 import json
 import logging
+import os
 import queue
+import select
 import signal
 import subprocess
 import threading
@@ -205,21 +207,21 @@ def _run_llm_subprocess(
         stderr_lines: list[str] = []
         tool_call_code_block_open = False
         last_output_was_stderr = False
-        output_lock = threading.Lock()
-        decoder = codecs.getincrementaldecoder("utf-8")(errors="replace")
-        stdout_read_size = 1
-        stream_chunk_size = 8
-        text_buffer = ""
+        stdout_decoder = codecs.getincrementaldecoder("utf-8")(errors="replace")
+        read_size = 1024
+        flush_timeout_seconds = 0.05
+        stdout_buffer = ""
+        stderr_line_buffer = b""
 
         def _broadcast(content: str) -> None:
             conversation_event_queues.broadcast(conversation_id, {"type": "message_delta", "content": content})
 
         def _flush_stdout_buffer() -> None:
-            nonlocal text_buffer
-            text_buffer += decoder.decode(b"", final=False)
-            if text_buffer:
-                _broadcast(text_buffer)
-                text_buffer = ""
+            nonlocal stdout_buffer
+            stdout_buffer += stdout_decoder.decode(b"", final=False)
+            if stdout_buffer:
+                _broadcast(stdout_buffer)
+                stdout_buffer = ""
 
         def _close_tool_call_code_block() -> None:
             nonlocal tool_call_code_block_open
@@ -227,49 +229,69 @@ def _run_llm_subprocess(
                 _broadcast("\n```\n\n")
                 tool_call_code_block_open = False
 
-        def _read_stderr() -> None:
+        def _handle_stderr_line(raw_line: bytes) -> None:
             nonlocal tool_call_code_block_open, last_output_was_stderr
-            assert process.stderr is not None
-            for raw_line in process.stderr:
-                line = raw_line.decode("utf-8", errors="replace").rstrip("\n")
-                stderr_lines.append(line)
-                with output_lock:
-                    _flush_stdout_buffer()
-                    if not tool_call_code_block_open:
-                        _broadcast("\n\n```\n" + line)
-                        tool_call_code_block_open = True
-                    else:
-                        _broadcast("\n" + line)
-                    last_output_was_stderr = True
+            line = raw_line.decode("utf-8", errors="replace").rstrip("\n")
+            stderr_lines.append(line)
+            _flush_stdout_buffer()
+            if not tool_call_code_block_open:
+                _broadcast("\n\n```\n" + line)
+                tool_call_code_block_open = True
+            else:
+                _broadcast("\n" + line)
+            last_output_was_stderr = True
 
-        stderr_thread = threading.Thread(target=_read_stderr, daemon=True)
-        stderr_thread.start()
+        def _handle_stdout_data(raw_chunk: bytes) -> None:
+            nonlocal stdout_buffer, last_output_was_stderr
+            stdout_buffer += stdout_decoder.decode(raw_chunk)
+            if last_output_was_stderr:
+                _close_tool_call_code_block()
+                last_output_was_stderr = False
+            _flush_stdout_buffer()
 
-        while True:
-            raw_chunk = process.stdout.read(stdout_read_size)
-            if not raw_chunk:
-                with output_lock:
-                    text_buffer += decoder.decode(b"", final=True)
-                    if last_output_was_stderr:
-                        _close_tool_call_code_block()
-                        last_output_was_stderr = False
-                    if text_buffer:
-                        _broadcast(text_buffer)
-                        text_buffer = ""
-                break
-            with output_lock:
-                text_buffer += decoder.decode(raw_chunk)
-                while len(text_buffer) >= stream_chunk_size:
-                    emit = text_buffer[:stream_chunk_size]
-                    text_buffer = text_buffer[stream_chunk_size:]
-                    if last_output_was_stderr:
-                        _close_tool_call_code_block()
-                        last_output_was_stderr = False
-                    _broadcast(emit)
+        stdout_fd = process.stdout.fileno()
+        stderr_fd = process.stderr.fileno()
+        os.set_blocking(stdout_fd, False)
+        os.set_blocking(stderr_fd, False)
+
+        open_fds = {stdout_fd, stderr_fd}
+        while open_fds:
+            ready = select.select(list(open_fds), [], [], flush_timeout_seconds)[0]
+            if not ready:
+                _flush_stdout_buffer()
+                continue
+            for fd in ready:
+                if fd == stderr_fd:
+                    raw = os.read(stderr_fd, read_size)
+                    if not raw:
+                        open_fds.discard(stderr_fd)
+                        continue
+                    stderr_line_buffer += raw
+                    while b"\n" in stderr_line_buffer:
+                        raw_line, stderr_line_buffer = stderr_line_buffer.split(b"\n", 1)
+                        _handle_stderr_line(raw_line)
+                elif fd == stdout_fd:
+                    raw = os.read(stdout_fd, read_size)
+                    if not raw:
+                        open_fds.discard(stdout_fd)
+                        continue
+                    _handle_stdout_data(raw)
+
+        # Process any remaining partial stderr line.
+        if stderr_line_buffer:
+            _handle_stderr_line(stderr_line_buffer)
+
+        # Finalize stdout decoder and flush.
+        remaining = stdout_decoder.decode(b"", final=True)
+        if remaining:
+            if last_output_was_stderr:
+                _close_tool_call_code_block()
+                last_output_was_stderr = False
+            stdout_buffer += remaining
+        _flush_stdout_buffer()
+        _close_tool_call_code_block()
 
         process.wait()
-        stderr_thread.join()
-        _close_tool_call_code_block()
 
         if process.returncode != 0:
             stderr_output = "\n".join(stderr_lines)

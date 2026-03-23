@@ -17,7 +17,7 @@ import {
   type StreamingMessage,
 } from "../models/StreamingMessage";
 import { getConversations } from "../models/Conversation";
-import { renderMarkdown } from "../markdown";
+import { MarkdownContent } from "../markdown";
 import { EmptySlot } from "./EmptySlot";
 import { MessageInput, setSelectedModelId } from "./MessageInput";
 
@@ -138,9 +138,7 @@ function renderAssistantMessage(responseItem: ResponseItem): m.Vnode {
       "data-slot": "message",
       "data-message-id": responseItem.id,
     },
-    messageClaimed
-      ? null
-      : [m("div", { class: "message-content markdown-content" }, m.trust(renderMarkdown(responseItem.response)))],
+    messageClaimed ? null : [m(MarkdownContent, { content: responseItem.response })],
   );
 }
 
@@ -155,18 +153,14 @@ function renderStreamingIndicator(): m.Vnode {
 function renderStreamingAssistantMessage(content: string): m.Vnode {
   const hasContent = content.length > 0;
   return m("div", { class: "message message-assistant message-streaming" }, [
-    hasContent
-      ? m("div", { class: "message-content markdown-content" }, m.trust(renderMarkdown(content)))
-      : renderStreamingIndicator(),
+    hasContent ? m(MarkdownContent, { content }) : renderStreamingIndicator(),
   ]);
 }
 
 function renderErrorMessage(errorContent: string, partialAssistantContent: string): m.Vnode {
   const children: m.Children[] = [];
   if (partialAssistantContent) {
-    children.push(
-      m("div", { class: "message-content markdown-content mb-3" }, m.trust(renderMarkdown(partialAssistantContent))),
-    );
+    children.push(m(MarkdownContent, { content: partialAssistantContent }));
   }
   children.push(
     m(
