@@ -17,6 +17,8 @@ logic.
 
 For more details, see the [high-level architecture docs](./docs/architecture.md) or the [extension docs](./docs/extensions.md).
 
+![Screenshot of LLM Webchat in a browser](https://github.com/user-attachments/assets/482a9c33-362f-4896-bea4-7dfc4f5fab33)
+
 ## Quickstart
 
 ```bash
