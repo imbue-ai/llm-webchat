@@ -69,7 +69,7 @@ export const MessageInput: m.Component<{ conversationId: string | null }> = {
     const hasMessageText = messageText.trim().length > 0;
     const busy = sending || streaming;
 
-    return m("div", { class: "message-input mx-auto w-full max-w-(--width-message-column)" }, [
+    return m("div", { class: "message-input mx-auto w-full" }, [
       m("div", { class: "message-input-box flex flex-col" }, [
         m("textarea", {
           class: "message-input-textbox w-full resize-none focus:outline-none",
