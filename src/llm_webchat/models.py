@@ -18,6 +18,18 @@ class Message(BaseModel, frozen=True):
     content: str
 
 
+class ToolCallItem(BaseModel, frozen=True):
+    name: str
+    arguments: str
+    tool_call_id: str
+
+
+class ToolResultItem(BaseModel, frozen=True):
+    name: str
+    output: str
+    tool_call_id: str
+
+
 class ResponseItem(BaseModel, frozen=True):
     id: str
     model: str
@@ -43,6 +55,14 @@ class ModelListResponse(BaseModel, frozen=True):
     models: list[ModelInfo]
 
 
+class ToolInfo(BaseModel, frozen=True):
+    tool_name: str
+
+
+class ToolListResponse(BaseModel, frozen=True):
+    tools: list[ToolInfo]
+
+
 class CreateConversationRequest(BaseModel, frozen=True):
     name: str
     model: str
@@ -56,6 +76,7 @@ class SendMessageRequest(BaseModel, frozen=True):
     message: str
     model: str
     system_prompt: str | None = None
+    tools: list[str] = []
 
 
 class SendMessageResponse(BaseModel, frozen=True):

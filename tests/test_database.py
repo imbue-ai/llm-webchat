@@ -8,6 +8,8 @@ from llm_webchat.models import Conversation
 from llm_webchat.models import ResponseItem
 from tests.helpers import insert_conversations
 from tests.helpers import insert_responses
+from tests.helpers import insert_tool_calls
+from tests.helpers import insert_tool_results
 
 
 def test_list_conversations_empty_database(test_database: sqlite_utils.Database) -> None:
@@ -248,3 +250,261 @@ def test_list_responses_with_null_prompt(test_database: sqlite_utils.Database) -
     assert len(result) == 1
     assert result[0].prompt is None
     assert result[0].response == "Injected response"
+
+
+def test_list_responses_merges_tool_use_chain(test_database: sqlite_utils.Database) -> None:
+    insert_conversations(test_database, [{"id": "conv1", "name": "Test", "model": "gpt-4"}])
+    insert_responses(
+        test_database,
+        [
+            {
+                "id": "r1",
+                "model": "gpt-4",
+                "prompt": "What time is it?",
+                "system": None,
+                "response": "",
+                "conversation_id": "conv1",
+                "datetime_utc": "2025-01-01T00:00:00",
+                "duration_ms": 100,
+                "input_tokens": 10,
+                "output_tokens": 5,
+            },
+            {
+                "id": "r2",
+                "model": "gpt-4",
+                "prompt": "",
+                "system": None,
+                "response": "The current time is 3:40 PM UTC.",
+                "conversation_id": "conv1",
+                "datetime_utc": "2025-01-01T00:00:01",
+                "duration_ms": 200,
+                "input_tokens": 20,
+                "output_tokens": 10,
+            },
+        ],
+    )
+    insert_tool_calls(
+        test_database,
+        [
+            {
+                "id": 1,
+                "response_id": "r1",
+                "tool_id": 1,
+                "name": "llm_time",
+                "arguments": "{}",
+                "tool_call_id": "tc_1",
+            },
+        ],
+    )
+    insert_tool_results(
+        test_database,
+        [
+            {
+                "id": 1,
+                "response_id": "r2",
+                "tool_id": 1,
+                "name": "llm_time",
+                "output": '{"time": "15:40"}',
+                "tool_call_id": "tc_1",
+            },
+        ],
+    )
+
+    result = list_responses(test_database, "conv1")
+    assert len(result) == 1
+    assert result[0].prompt == "What time is it?"
+    assert "Tool call: llm_time({})" in result[0].response
+    assert '{"time": "15:40"}' in result[0].response
+    assert "The current time is 3:40 PM UTC." in result[0].response
+    assert result[0].duration_ms == 300
+    assert result[0].input_tokens == 30
+    assert result[0].output_tokens == 15
+
+
+def test_list_responses_merges_multi_step_tool_chain(test_database: sqlite_utils.Database) -> None:
+    insert_conversations(test_database, [{"id": "conv1", "name": "Test", "model": "gpt-4"}])
+    insert_responses(
+        test_database,
+        [
+            {
+                "id": "r1",
+                "model": "gpt-4",
+                "prompt": "Complex task",
+                "system": None,
+                "response": "Let me check",
+                "conversation_id": "conv1",
+                "datetime_utc": "2025-01-01T00:00:00",
+                "duration_ms": 100,
+                "input_tokens": 10,
+                "output_tokens": 5,
+            },
+            {
+                "id": "r2",
+                "model": "gpt-4",
+                "prompt": "",
+                "system": None,
+                "response": "Now checking more",
+                "conversation_id": "conv1",
+                "datetime_utc": "2025-01-01T00:00:01",
+                "duration_ms": 200,
+                "input_tokens": 20,
+                "output_tokens": 10,
+            },
+            {
+                "id": "r3",
+                "model": "gpt-4",
+                "prompt": "",
+                "system": None,
+                "response": "Final answer.",
+                "conversation_id": "conv1",
+                "datetime_utc": "2025-01-01T00:00:02",
+                "duration_ms": 150,
+                "input_tokens": 15,
+                "output_tokens": 8,
+            },
+        ],
+    )
+    insert_tool_calls(
+        test_database,
+        [
+            {
+                "id": 1,
+                "response_id": "r1",
+                "tool_id": 1,
+                "name": "tool_a",
+                "arguments": '{"x": 1}',
+                "tool_call_id": "tc_a",
+            },
+            {
+                "id": 2,
+                "response_id": "r2",
+                "tool_id": 2,
+                "name": "tool_b",
+                "arguments": '{"y": 2}',
+                "tool_call_id": "tc_b",
+            },
+        ],
+    )
+    insert_tool_results(
+        test_database,
+        [
+            {
+                "id": 1,
+                "response_id": "r2",
+                "tool_id": 1,
+                "name": "tool_a",
+                "output": "result_a",
+                "tool_call_id": "tc_a",
+            },
+            {
+                "id": 2,
+                "response_id": "r3",
+                "tool_id": 2,
+                "name": "tool_b",
+                "output": "result_b",
+                "tool_call_id": "tc_b",
+            },
+        ],
+    )
+
+    result = list_responses(test_database, "conv1")
+    assert len(result) == 1
+    assert result[0].prompt == "Complex task"
+    # Verify all tool calls and results are present in order
+    response_text = result[0].response
+    assert "Let me check" in response_text
+    assert "Tool call: tool_a" in response_text
+    assert "result_a" in response_text
+    assert "Now checking more" in response_text
+    assert "Tool call: tool_b" in response_text
+    assert "result_b" in response_text
+    assert "Final answer." in response_text
+    # Verify ordering: tool_a block before tool_b block before final answer
+    assert response_text.index("tool_a") < response_text.index("tool_b")
+    assert response_text.index("tool_b") < response_text.index("Final answer.")
+    # Verify aggregated tokens
+    assert result[0].duration_ms == 450
+    assert result[0].input_tokens == 45
+    assert result[0].output_tokens == 23
+
+
+def test_list_responses_no_merge_without_tool_calls(test_database: sqlite_utils.Database) -> None:
+    """Regular conversations without tools remain unchanged."""
+    insert_conversations(test_database, [{"id": "conv1", "name": "Test", "model": "gpt-4"}])
+    insert_responses(
+        test_database,
+        [
+            {
+                "id": "r1",
+                "model": "gpt-4",
+                "prompt": "Hello",
+                "system": None,
+                "response": "Hi!",
+                "conversation_id": "conv1",
+                "datetime_utc": "2025-01-01T00:00:00",
+                "duration_ms": 100,
+                "input_tokens": 5,
+                "output_tokens": 3,
+            },
+            {
+                "id": "r2",
+                "model": "gpt-4",
+                "prompt": "How are you?",
+                "system": None,
+                "response": "Fine!",
+                "conversation_id": "conv1",
+                "datetime_utc": "2025-01-01T00:01:00",
+                "duration_ms": 80,
+                "input_tokens": 8,
+                "output_tokens": 2,
+            },
+        ],
+    )
+
+    result = list_responses(test_database, "conv1")
+    assert len(result) == 2
+    assert result[0].response == "Hi!"
+    assert result[1].response == "Fine!"
+
+
+def test_list_responses_promptless_response_not_merged_without_tool_calls(
+    test_database: sqlite_utils.Database,
+) -> None:
+    """A promptless response following a turn with no tool calls stays separate."""
+    insert_conversations(test_database, [{"id": "conv1", "name": "Test", "model": "gpt-4"}])
+    insert_responses(
+        test_database,
+        [
+            {
+                "id": "r1",
+                "model": "gpt-4",
+                "prompt": "Hello",
+                "system": None,
+                "response": "Hi there!",
+                "conversation_id": "conv1",
+                "datetime_utc": "2025-01-01T00:00:00",
+                "duration_ms": 100,
+                "input_tokens": 5,
+                "output_tokens": 3,
+            },
+            {
+                "id": "r2",
+                "model": "gpt-4",
+                "prompt": "",
+                "system": None,
+                "response": "Injected message",
+                "conversation_id": "conv1",
+                "datetime_utc": "2025-01-01T00:00:01",
+                "duration_ms": 50,
+                "input_tokens": 2,
+                "output_tokens": 4,
+            },
+        ],
+    )
+
+    result = list_responses(test_database, "conv1")
+    assert len(result) == 2
+    assert result[0].prompt == "Hello"
+    assert result[0].response == "Hi there!"
+    assert result[1].prompt == ""
+    assert result[1].response == "Injected message"

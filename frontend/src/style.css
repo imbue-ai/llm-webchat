@@ -525,6 +525,65 @@ body {
   border-color: var(--color-accent);
 }
 
+/* ── Tool selector ── */
+.tool-selector-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.tool-selector-toggle {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  align-self: flex-start;
+  transition: color 120ms;
+}
+
+.tool-selector-toggle:hover {
+  color: var(--color-text-primary);
+}
+
+.tool-selector-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.tool-selector-option {
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--font-family-mono);
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  background: var(--color-bg-sidebar);
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  padding: 4px 10px;
+  cursor: pointer;
+  transition:
+    background 120ms,
+    border-color 120ms,
+    color 120ms;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.tool-selector-option:hover {
+  border-color: var(--color-accent);
+  color: var(--color-text-primary);
+}
+
+.tool-selector-option--selected {
+  color: var(--color-accent);
+  font-weight: 500;
+  background: var(--color-accent-light);
+  border-color: var(--color-accent);
+}
+
 /* ── Markdown content styling ── */
 .markdown-content {
   line-height: 1.75;
@@ -630,6 +689,47 @@ body {
   padding-left: 1em;
   border-left: 3px solid var(--color-border);
   color: var(--color-text-secondary);
+}
+
+/* ── Collapsible tool call blocks ── */
+.markdown-content .tool-call-block {
+  cursor: pointer;
+  margin-top: 0.75em;
+  margin-bottom: 0.75em;
+}
+
+.markdown-content .tool-call-block pre {
+  margin: 0;
+  padding-left: 28px;
+  position: relative;
+}
+
+.markdown-content .tool-call-block pre::before {
+  content: "▸";
+  position: absolute;
+  left: 10px;
+  top: 14px;
+  font-family: var(--font-family-mono);
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--color-text-faint);
+  transition: transform 150ms;
+  pointer-events: none;
+}
+
+.markdown-content .tool-call-block--expanded pre::before {
+  transform: rotate(90deg);
+}
+
+.markdown-content .tool-call-block pre code {
+  display: block;
+}
+
+.markdown-content .tool-call-block:not(.tool-call-block--expanded) pre code {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-height: 1.55em;
 }
 
 .markdown-content hr {

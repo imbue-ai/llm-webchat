@@ -37,14 +37,10 @@ export async function fetchModels(): Promise<void> {
     return;
   }
 
-  try {
-    const response = await m.request<ModelListResponse>({
-      method: "GET",
-      url: "/api/models",
-    });
-    models = response.models;
-    modelsLoaded = true;
-  } catch {
-    modelsLoaded = true;
-  }
+  const response = await m.request<ModelListResponse>({
+    method: "GET",
+    url: "/api/models",
+  });
+  models = response.models;
+  modelsLoaded = true;
 }

@@ -36,3 +36,37 @@ def insert_responses(database: sqlite_utils.Database, responses: list[dict[str, 
         )
     for response in responses:
         database["responses"].insert(response)
+
+
+def insert_tool_calls(database: sqlite_utils.Database, tool_calls: list[dict[str, Any]]) -> None:
+    if "tool_calls" not in database.table_names():
+        database["tool_calls"].create(
+            {
+                "id": int,
+                "response_id": str,
+                "tool_id": int,
+                "name": str,
+                "arguments": str,
+                "tool_call_id": str,
+            },
+            pk="id",
+        )
+    for tool_call in tool_calls:
+        database["tool_calls"].insert(tool_call)
+
+
+def insert_tool_results(database: sqlite_utils.Database, tool_results: list[dict[str, Any]]) -> None:
+    if "tool_results" not in database.table_names():
+        database["tool_results"].create(
+            {
+                "id": int,
+                "response_id": str,
+                "tool_id": int,
+                "name": str,
+                "output": str,
+                "tool_call_id": str,
+            },
+            pk="id",
+        )
+    for tool_result in tool_results:
+        database["tool_results"].insert(tool_result)

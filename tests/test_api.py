@@ -124,21 +124,24 @@ def test_list_responses_with_null_prompt(client: TestClient, test_database: sqli
 
 
 def _make_fake_popen(stdout_chunks: list[bytes], returncode: int = 0, stderr: bytes = b"") -> MagicMock:
+    import os
+
     mock_process = MagicMock()
     mock_process.returncode = returncode
     mock_process.wait = MagicMock()
 
-    read_calls = [*stdout_chunks, b""]
+    stdout_read_fd, stdout_write_fd = os.pipe()
+    for chunk in stdout_chunks:
+        os.write(stdout_write_fd, chunk)
+    os.close(stdout_write_fd)
+    mock_process.stdout = os.fdopen(stdout_read_fd, "rb")
 
-    def fake_read(size: int) -> bytes:
-        if read_calls:
-            return read_calls.pop(0)
-        return b""
+    stderr_read_fd, stderr_write_fd = os.pipe()
+    if stderr:
+        os.write(stderr_write_fd, stderr)
+    os.close(stderr_write_fd)
+    mock_process.stderr = os.fdopen(stderr_read_fd, "rb")
 
-    mock_process.stdout = MagicMock()
-    mock_process.stdout.read = fake_read
-    mock_process.stderr = MagicMock()
-    mock_process.stderr.read = MagicMock(return_value=stderr)
     return mock_process
 
 
@@ -295,7 +298,7 @@ def test_run_llm_subprocess_calls_llm_with_correct_arguments() -> None:
         _run_llm_subprocess(conversation_event_queues, conversation_id, "What is Python?", "claude-3-opus")
 
     mock_popen.assert_called_once_with(
-        ["llm", "-m", "claude-3-opus", "--cid", conversation_id, "What is Python?"],
+        ["llm", "-m", "claude-3-opus", "--cid", conversation_id, "--td", "--cl", "20", "What is Python?"],
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
     )
@@ -321,7 +324,19 @@ def test_run_llm_subprocess_calls_llm_with_system_prompt() -> None:
         )
 
     mock_popen.assert_called_once_with(
-        ["llm", "-m", "gpt-4", "--cid", conversation_id, "--system", "You are a helpful assistant.", "Hello"],
+        [
+            "llm",
+            "-m",
+            "gpt-4",
+            "--cid",
+            conversation_id,
+            "--td",
+            "--cl",
+            "20",
+            "--system",
+            "You are a helpful assistant.",
+            "Hello",
+        ],
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
     )
@@ -336,6 +351,107 @@ def test_send_message_with_system_prompt(client: TestClient, test_database: sqli
         response = client.post(
             "/api/conversations/conv1/message",
             json={"message": "Hi there", "model": "gpt-4", "system_prompt": "Be concise."},
+        )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "ok"
+
+
+def test_parse_tool_names() -> None:
+    from llm_webchat.server import _parse_tool_names
+
+    output = (
+        "llm_time() -> dict (plugin: llm.default_plugins.default_tools)\n"
+        "\n"
+        "  Returns the current time, as local time and UTC\n"
+        "\n"
+        "llm_version() -> str (plugin: llm.default_plugins.default_tools)\n"
+        "\n"
+        "  Return the installed version of llm\n"
+    )
+    assert _parse_tool_names(output) == ["llm_time", "llm_version"]
+
+
+def test_parse_tool_names_empty() -> None:
+    from llm_webchat.server import _parse_tool_names
+
+    assert _parse_tool_names("") == []
+    assert _parse_tool_names("\n\n") == []
+
+
+def test_list_tools(client: TestClient) -> None:
+    mock_result = MagicMock()
+    mock_result.stdout = (
+        "llm_time() -> dict (plugin: llm.default_plugins.default_tools)\n"
+        "\n"
+        "  Returns the current time\n"
+        "\n"
+        "llm_version() -> str (plugin: llm.default_plugins.default_tools)\n"
+        "\n"
+        "  Return the installed version of llm\n"
+    )
+
+    with patch("llm_webchat.server.subprocess.run", return_value=mock_result):
+        response = client.get("/api/tools")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert "tools" in data
+    assert len(data["tools"]) == 2
+    assert data["tools"][0]["tool_name"] == "llm_time"
+    assert data["tools"][1]["tool_name"] == "llm_version"
+
+
+def test_run_llm_subprocess_calls_llm_with_tools() -> None:
+    from llm_webchat.event_queues import ConversationEventQueues
+    from llm_webchat.server import _run_llm_subprocess
+
+    conversation_event_queues = ConversationEventQueues()
+    conversation_id = "test_tools_conv"
+    conversation_event_queues.register(conversation_id)
+
+    mock_process = _make_fake_popen([b"response"])
+
+    with patch("llm_webchat.server.subprocess.Popen", return_value=mock_process) as mock_popen:
+        _run_llm_subprocess(
+            conversation_event_queues,
+            conversation_id,
+            "What time is it?",
+            "gpt-4",
+            tools=["llm_time", "llm_version"],
+        )
+
+    mock_popen.assert_called_once_with(
+        [
+            "llm",
+            "-m",
+            "gpt-4",
+            "--cid",
+            conversation_id,
+            "--td",
+            "--cl",
+            "20",
+            "-T",
+            "llm_time",
+            "-T",
+            "llm_version",
+            "What time is it?",
+        ],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+
+
+def test_send_message_with_tools(client: TestClient, test_database: sqlite_utils.Database) -> None:
+    insert_conversations(test_database, [{"id": "conv1", "name": "Test", "model": "gpt-4"}])
+
+    with patch("llm_webchat.server.subprocess.Popen") as mock_popen:
+        mock_popen.return_value = _make_fake_popen([b"Hello!"])
+
+        response = client.post(
+            "/api/conversations/conv1/message",
+            json={"message": "What time is it?", "model": "gpt-4", "tools": ["llm_time"]},
         )
 
     assert response.status_code == 200

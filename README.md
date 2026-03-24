@@ -28,6 +28,17 @@ llm webchat
 
 ![Screenshot of LLM Webchat in a browser](https://github.com/user-attachments/assets/482a9c33-362f-4896-bea4-7dfc4f5fab33)
 
+## Configuration
+
+LLM Webchat recognizes the following environment variables (all of which are optional):
+
+- `LLM_WEBCHAT_CONVERSATION_IDS`: a comma-separated whitelist of conversations.
+- `LLM_WEBCHAT_JAVASCRIPT_PLUGINS`: a comma-separated list of .js files containing frontend plugins (see the [extension docs](./docs/extensions.md) for more details).
+- `LLM_WEBCHAT_STATIC_PATHS`: a comma-separated list of additional file paths that should be served from `/plugins`.
+- `LLM_WEBCHAT_HOST`: the host address the server binds to. Defaults to `127.0.0.1`.
+- `LLM_WEBCHAT_PORT`: the port the server listens on. Defaults to `8000`.
+- `LLM_WEBCHAT_TOOL_CHAIN_LIMIT`: maximum number of chained tool responses allowed per message. Defaults to `20`. Set to `0` for unlimited.
+
 ## Development
 
 ### Prerequisites

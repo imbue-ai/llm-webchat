@@ -47,6 +47,7 @@ export async function createConversationAndSend(
   message: string,
   modelId: string,
   systemPrompt: string,
+  tools: string[] = [],
 ): Promise<string> {
   const trimmedMessage = message.trim();
   const trimmedSystemPrompt = systemPrompt.trim();
@@ -67,9 +68,12 @@ export async function createConversationAndSend(
 
   await fetchConversations();
 
-  const messageBody: Record<string, string> = { message: trimmedMessage, model: modelId };
+  const messageBody: Record<string, string | string[]> = { message: trimmedMessage, model: modelId };
   if (trimmedSystemPrompt) {
     messageBody.system_prompt = trimmedSystemPrompt;
+  }
+  if (tools.length > 0) {
+    messageBody.tools = tools;
   }
 
   const postMessageHookData = await runHook("post_conversation_message", {
@@ -87,6 +91,7 @@ export async function createConversationAndSend(
       message: postMessageHookData.message,
       model: postMessageHookData.model,
       ...(postMessageHookData.systemPrompt ? { system_prompt: postMessageHookData.systemPrompt } : {}),
+      ...(tools.length > 0 ? { tools } : {}),
     },
   });
 
