@@ -23,6 +23,11 @@ function hasToolCallLine(textContent: string): boolean {
   return false;
 }
 
+/*
+ * On the backend, we use the --td argument to llm and include
+ * the debug output in the stream. For each tool call, the debug
+ * output starts with a line that starts with "Tool call: ".
+ */
 function wrapToolCallBlocks(container: HTMLElement): void {
   for (const preElement of Array.from(container.querySelectorAll("pre"))) {
     if (preElement.parentElement?.classList.contains("tool-call-block")) {

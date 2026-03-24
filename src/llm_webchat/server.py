@@ -188,6 +188,12 @@ def _run_llm_subprocess(
         )
         conversation_event_queues.broadcast(conversation_id, {"type": "message_start"})
 
+        # The --td argument causes tool calls to be output to stderr.
+        # During typical operation, we don't expect anything else on stderr.
+        # For simplicity, make stderr output part of the message stream.
+        # We don't expect stdout and stderr to emit data at the same time so that should be fine.
+        # Every time we transition from stdout to stderr or vice versa, we flush the current buffer
+        # to ensure correct ordering and make sure stderr blocks are properly delimited by ``` code blocks.
         command = ["llm", "-m", model, "--cid", conversation_id, "--td", "--cl", str(tool_chain_limit)]
         if system_prompt:
             command.extend(["--system", system_prompt])
