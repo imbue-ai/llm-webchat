@@ -1,6 +1,7 @@
 import { llmApi } from "./llm-api";
 import type { LlmApi } from "./llm-api";
 import { runHook } from "./hooks";
+import { getPluginRouteMithrilComponents } from "./plugin-routes";
 import m from "mithril";
 import "./style.css";
 import { App } from "./views/App";
@@ -18,10 +19,12 @@ async function bootstrap(): Promise<void> {
   m.route.prefix = "";
   const rootElement = document.getElementById("app");
   if (rootElement) {
+    const pluginRoutes = getPluginRouteMithrilComponents();
     m.route(rootElement, "/", {
       "/": App,
       "/new": App,
       "/conversations/:conversationId": App,
+      ...pluginRoutes,
     });
     await runHook("ready");
   }
