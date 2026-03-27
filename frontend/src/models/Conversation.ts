@@ -1,6 +1,7 @@
 import m from "mithril";
 import { runHook } from "../hooks";
 import { getSelectedConversationId, selectConversation } from "../navigation";
+import { apiUrl } from "../base-path";
 
 export interface Conversation {
   id: string;
@@ -55,7 +56,7 @@ export async function createConversationAndSend(
 
   const response = await m.request<CreateConversationResponse>({
     method: "POST",
-    url: "/api/conversations",
+    url: apiUrl("/api/conversations"),
     body: { name, model: modelId },
   });
   const conversationId = response.id;
@@ -85,7 +86,7 @@ export async function createConversationAndSend(
 
   await m.request({
     method: "POST",
-    url: "/api/conversations/:conversationId/message",
+    url: apiUrl("/api/conversations/:conversationId/message"),
     params: { conversationId },
     body: {
       message: postMessageHookData.message,
@@ -102,7 +103,7 @@ export async function fetchConversations(): Promise<void> {
   try {
     const response = await m.request<ConversationListResponse>({
       method: "GET",
-      url: "/api/conversations",
+      url: apiUrl("/api/conversations"),
     });
     const hookResult = await runHook("get_conversations", {
       conversations: response.conversations,

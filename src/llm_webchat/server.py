@@ -82,12 +82,17 @@ async def _lifespan(application: FastAPI) -> AsyncIterator[None]:
         signal.signal(signal.SIGINT, original_sigint_handler)
 
 
-def _build_plugin_script_tags(plugin_basenames: list[str]) -> str:
-    return "\n".join(f'<script src="/plugins/{basename}"></script>' for basename in plugin_basenames)
+def _build_plugin_script_tags(plugin_basenames: list[str], root_path: str) -> str:
+    return "\n".join(f'<script src="{root_path}/plugins/{basename}"></script>' for basename in plugin_basenames)
 
 
-def _inject_plugin_script_tags(html_content: str, plugin_basenames: list[str]) -> str:
-    script_tags = _build_plugin_script_tags(plugin_basenames)
+def _inject_base_path_meta_tag(html_content: str, root_path: str) -> str:
+    meta_tag = f'<meta name="llm-webchat-base-path" content="{root_path}">'
+    return html_content.replace("</head>", f"{meta_tag}\n</head>")
+
+
+def _inject_plugin_script_tags(html_content: str, plugin_basenames: list[str], root_path: str) -> str:
+    script_tags = _build_plugin_script_tags(plugin_basenames, root_path)
     # This is fragile but should be fine in practice.
     return html_content.replace("</body>", f"{script_tags}\n</body>")
 
@@ -96,11 +101,12 @@ def _index(request: Request) -> Response:
     index_path = STATIC_DIRECTORY / "index.html"
     if index_path.exists():
         config: Config = request.app.state.config
+        root_path = request.scope.get("root_path", "").rstrip("/")
+        html_content = index_path.read_text()
+        html_content = _inject_base_path_meta_tag(html_content, root_path)
         if config.javascript_plugin_basenames:
-            html_content = index_path.read_text()
-            html_content = _inject_plugin_script_tags(html_content, config.javascript_plugin_basenames)
-            return HTMLResponse(html_content)
-        return FileResponse(index_path, media_type="text/html")
+            html_content = _inject_plugin_script_tags(html_content, config.javascript_plugin_basenames, root_path)
+        return HTMLResponse(html_content)
     return HTMLResponse(_FRONTEND_NOT_BUILT_HTML)
 
 

@@ -7,6 +7,7 @@
 
 import m from "mithril";
 import { runHook } from "../hooks";
+import { apiUrl } from "../base-path";
 
 export interface StreamingMessage {
   conversationId: string;
@@ -90,7 +91,7 @@ export function connectToStream(conversationId: string): void {
   disconnectFromStream();
 
   activeConversationId = conversationId;
-  const eventSource = new EventSource(`/api/conversations/${encodeURIComponent(conversationId)}/stream`);
+  const eventSource = new EventSource(apiUrl(`/api/conversations/${encodeURIComponent(conversationId)}/stream`));
   activeEventSource = eventSource;
 
   eventSource.onmessage = (event: MessageEvent) => {

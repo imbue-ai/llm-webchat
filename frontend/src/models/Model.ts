@@ -1,4 +1,5 @@
 import m from "mithril";
+import { apiUrl } from "../base-path";
 
 const LOCAL_STORAGE_KEY = "llm-webchat-selected-model";
 
@@ -39,7 +40,7 @@ export async function fetchModels(): Promise<void> {
 
   const response = await m.request<ModelListResponse>({
     method: "GET",
-    url: "/api/models",
+    url: apiUrl("/api/models"),
   });
   models = response.models;
   modelsLoaded = true;
