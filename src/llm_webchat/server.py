@@ -373,7 +373,7 @@ def _stream_events(conversation_id: str, request: Request) -> Response:
                     yield f"data: {json.dumps(event)}\n\n"
                 except queue.Empty:
                     keepalive_counter += 1
-                    if keepalive_counter >= 30:
+                    if keepalive_counter >= 8:
                         keepalive_counter = 0
                         yield ": keepalive\n\n"
         except GeneratorExit:
