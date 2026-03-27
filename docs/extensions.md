@@ -63,10 +63,22 @@ There's a global `$llm` object that can be used to:
     - `$llm.on("post_conversation_message")`
     - `$llm.on("get_response")`
     - `$llm.on("stream_event")`
-
-The registered `on` callbacks can be typically used both to
-react to an event and to change the data on the fly (e.g.
-to augment what gets sent to the server).
+    - The registered `on` callbacks can be typically used both to react to an event and to change the data on the fly (e.g. to augment what gets sent to the server).
+- Register custom routes:
+    - `$llm.registerRoute(path, handler)` - Add a new frontend route that the plugin owns entirely.
+    - `path` is a Mithril-style route string (e.g. `"/settings"`, `"/stats/:period"`).
+    - `handler` is either a render callback or an object with `render` and optional `destroy`:
+        - **Simple callback:** `(container, params) => { ... }` - called with the DOM element and the route parameters whenever the route is entered or updated.
+        - **Object form:** `{ render(container, params) { ... }, destroy() { ... } }` - `destroy` is called when navigating away.
+    - Returns `true` if the route was registered, `false` if the path was already taken.
+    - Routes must be registered **before** the `ready` hook fires (i.e. at the top level of your plugin script) because they are added to the router during bootstrap.
+    - Example:
+      ```js
+      $llm.registerRoute("/my-page", (container, params) => {
+        container.innerHTML = "<h1>Hello from my plugin!</h1>";
+      });
+      ```
+    - Navigate to plugin routes with standard links (`<a href="/my-page">`) or programmatically via `m.route.set("/my-page")` from Mithril, or `history.pushState(null, "", "/my-page")` from plain JS.
 
 
 ## Examples

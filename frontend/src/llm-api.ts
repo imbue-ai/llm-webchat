@@ -7,9 +7,12 @@ import { getAllResponses } from "./models/Response";
 import type { HookDataMap, HookName, HookCallback } from "./hooks";
 import { runHook, registerHook } from "./hooks";
 import { claimSlot } from "./slots";
+import type { RouteRenderCallback, PluginRouteHandler } from "./plugin-routes";
+import { registerPluginRoute } from "./plugin-routes";
 
 interface LlmApi {
   claim(slotName: string): boolean;
+  registerRoute(path: string, handler: RouteRenderCallback | PluginRouteHandler): boolean;
   getResponse(responseId: string): Promise<ResponseItem | null>;
   getConversations(): Conversation[];
   getConversation(conversationId: string): Conversation | null;
@@ -20,6 +23,10 @@ interface LlmApi {
 const llmApi: LlmApi = {
   claim(slotName: string): boolean {
     return claimSlot(slotName);
+  },
+
+  registerRoute(path: string, handler: RouteRenderCallback | PluginRouteHandler): boolean {
+    return registerPluginRoute(path, handler);
   },
 
   async getResponse(responseId: string): Promise<ResponseItem | null> {
