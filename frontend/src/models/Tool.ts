@@ -1,4 +1,5 @@
 import m from "mithril";
+import { apiUrl } from "../base-path";
 
 export interface Tool {
   tool_name: string;
@@ -22,7 +23,7 @@ export async function fetchTools(): Promise<void> {
 
   const response = await m.request<ToolListResponse>({
     method: "GET",
-    url: "/api/tools",
+    url: apiUrl("/api/tools"),
   });
   tools = response.tools;
   toolsLoaded = true;

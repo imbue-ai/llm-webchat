@@ -627,6 +627,53 @@ def test_serve_static_path_by_basename(client_with_static_paths: TestClient, sta
     assert response.headers["content-type"].startswith("image/png")
 
 
+def test_index_injects_base_path_meta_tag(client: TestClient, tmp_path: Path) -> None:
+    import llm_webchat.server as server_module
+
+    original_static = server_module.STATIC_DIRECTORY
+    try:
+        server_module.STATIC_DIRECTORY = _make_static_directory_with_index_html(tmp_path)
+
+        response = client.get("/")
+        assert response.status_code == 200
+        assert '<meta name="llm-webchat-base-path" content="">' in response.text
+    finally:
+        server_module.STATIC_DIRECTORY = original_static
+
+
+def test_index_injects_base_path_meta_tag_with_root_path(tmp_path: Path, llm_user_path: Path) -> None:
+    import llm_webchat.server as server_module
+
+    original_static = server_module.STATIC_DIRECTORY
+    try:
+        server_module.STATIC_DIRECTORY = _make_static_directory_with_index_html(tmp_path)
+        application = create_application()
+        with TestClient(application, root_path="/myapp") as test_client:
+            response = test_client.get("/")
+            assert response.status_code == 200
+            assert '<meta name="llm-webchat-base-path" content="/myapp">' in response.text
+    finally:
+        server_module.STATIC_DIRECTORY = original_static
+
+
+def test_plugin_script_tags_respect_root_path(plugin_files: list[Path], tmp_path: Path, llm_user_path: Path) -> None:
+    import llm_webchat.server as server_module
+
+    original_static = server_module.STATIC_DIRECTORY
+    try:
+        server_module.STATIC_DIRECTORY = _make_static_directory_with_index_html(tmp_path / "frontend")
+        application = create_application(
+            Config(llm_webchat_javascript_plugins=[str(path) for path in plugin_files]),
+        )
+        with TestClient(application, root_path="/myapp") as test_client:
+            response = test_client.get("/")
+            assert response.status_code == 200
+            assert '<script src="/myapp/plugins/plugin_one.js"></script>' in response.text
+            assert '<script src="/myapp/plugins/plugin_two.js"></script>' in response.text
+    finally:
+        server_module.STATIC_DIRECTORY = original_static
+
+
 def test_static_paths_not_injected_as_script_tags(
     static_asset_files: list[Path], tmp_path: Path, llm_user_path: Path
 ) -> None:

@@ -1,5 +1,6 @@
 import m from "mithril";
 import { runHook } from "../hooks";
+import { apiUrl } from "../base-path";
 
 export interface ResponseItem {
   id: string;
@@ -77,7 +78,7 @@ export async function fetchResponses(conversationId: string): Promise<ResponseIt
   const result = await m
     .request<ResponseListResponse>({
       method: "GET",
-      url: "/api/conversations/:conversationId/responses",
+      url: apiUrl("/api/conversations/:conversationId/responses"),
       params: { conversationId },
     })
     .catch((error) => {
@@ -110,7 +111,7 @@ export async function sendMessage(conversationId: string, message: string, model
 
   await m.request({
     method: "POST",
-    url: "/api/conversations/:conversationId/message",
+    url: apiUrl("/api/conversations/:conversationId/message"),
     params: { conversationId },
     body: {
       message: hookResult.message,
