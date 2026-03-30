@@ -6,7 +6,9 @@ import { ModelSelector } from "./ModelSelector";
 
 const MAX_TEXTAREA_HEIGHT_PX = 200;
 
-let messageText = "";
+const MESSAGE_TEXT_KEY = "message-text";
+
+let messageText = localStorage.getItem(MESSAGE_TEXT_KEY) ?? "";
 let sending = false;
 let selectedModelId: string | null = null;
 let messageTextareaElement: HTMLTextAreaElement | null = null;
@@ -49,6 +51,7 @@ export const MessageInput: m.Component<{ conversationId: string | null }> = {
       try {
         await sendMessage(conversationId, messageText, modelId);
         messageText = "";
+        localStorage.setItem(MESSAGE_TEXT_KEY, messageText);
       } finally {
         sending = false;
         m.redraw();
@@ -92,6 +95,7 @@ export const MessageInput: m.Component<{ conversationId: string | null }> = {
           oninput: (event: Event) => {
             const textarea = event.target as HTMLTextAreaElement;
             messageText = textarea.value;
+            localStorage.setItem(MESSAGE_TEXT_KEY, messageText);
             autoResizeTextarea(textarea);
           },
           onkeydown: handleKeydown,
