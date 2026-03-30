@@ -33,3 +33,17 @@ class LlmWebchatHookSpec:
         replay-buffer semantics; it defaults to ``"store"`` and is stripped before
         delivery to subscribers.
         """
+
+    @hookspec
+    def modify_llm_prompt_command(self, command: list[str]) -> None:
+        """Modify the llm CLI argument list used to send a message before the subprocess is launched.
+
+        ``command`` is a mutable list of strings representing the full argument
+        list that will be passed to ``subprocess.Popen``.  Hook implementations
+        may mutate it in-place — for example, to inject a ``--system`` flag,
+        add ``-T`` tool arguments, or change the model.
+
+        All registered hooks are called in pluggy's default order (LIFO
+        registration) before the subprocess is spawned.  Modifications made by
+        one hook are visible to subsequent hooks.
+        """
