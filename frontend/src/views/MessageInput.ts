@@ -6,9 +6,14 @@ import { ModelSelector } from "./ModelSelector";
 
 const MAX_TEXTAREA_HEIGHT_PX = 200;
 
-const MESSAGE_TEXT_KEY = "message-text";
+const MESSAGE_TEXT_KEY_PREFIX = "message-text:";
 
-let messageText = localStorage.getItem(MESSAGE_TEXT_KEY) ?? "";
+function messageTextKey(conversationId: string): string {
+  return `${MESSAGE_TEXT_KEY_PREFIX}${conversationId}`;
+}
+
+let messageText = "";
+let currentConversationId: string | null = null;
 let sending = false;
 let selectedModelId: string | null = null;
 let messageTextareaElement: HTMLTextAreaElement | null = null;
@@ -35,6 +40,11 @@ export const MessageInput: m.Component<{ conversationId: string | null }> = {
       return null;
     }
 
+    if (currentConversationId !== conversationId) {
+      currentConversationId = conversationId;
+      messageText = localStorage.getItem(messageTextKey(conversationId)) ?? "";
+    }
+
     if (selectedModelId === null) {
       selectedModelId = getDefaultModelId();
     }
@@ -51,7 +61,7 @@ export const MessageInput: m.Component<{ conversationId: string | null }> = {
       try {
         await sendMessage(conversationId, messageText, modelId);
         messageText = "";
-        localStorage.setItem(MESSAGE_TEXT_KEY, messageText);
+        localStorage.removeItem(messageTextKey(conversationId));
       } finally {
         sending = false;
         m.redraw();
@@ -95,7 +105,7 @@ export const MessageInput: m.Component<{ conversationId: string | null }> = {
           oninput: (event: Event) => {
             const textarea = event.target as HTMLTextAreaElement;
             messageText = textarea.value;
-            localStorage.setItem(MESSAGE_TEXT_KEY, messageText);
+            localStorage.setItem(messageTextKey(conversationId), messageText);
             autoResizeTextarea(textarea);
           },
           onkeydown: handleKeydown,
