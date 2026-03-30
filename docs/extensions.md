@@ -6,6 +6,7 @@ The backend can be extended using [pluggy](https://github.com/pytest-dev/pluggy)
 
 - `endpoint(app)` — Register additional endpoints.
 - `register_event_broadcaster(broadcaster)` — Receive a reference to the event broadcaster. It can be used to inject custom events into conversation SSE streams.
+- `modify_llm_prompt_command(command)` — Modify the `llm` CLI argument list used to send a message, before the subprocess is launched. `command` is a mutable `list[str]` (e.g. `["llm", "-m", "gpt-4", "--cid", "abc", "--td", "--cl", "20", "Hello"]`) that hook implementations can mutate in-place.
 
 
 ## Styles

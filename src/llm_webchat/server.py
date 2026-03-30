@@ -207,6 +207,9 @@ def _run_llm_subprocess(
             command.extend(["-T", tool_name])
         command.append(message)
 
+        plugin_manager = get_plugin_manager()
+        plugin_manager.hook.modify_llm_prompt_command(command=command)
+
         process = subprocess.Popen(
             command,
             stdout=subprocess.PIPE,

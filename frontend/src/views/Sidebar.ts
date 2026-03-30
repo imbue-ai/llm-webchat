@@ -7,10 +7,13 @@ const ICON_PANEL_LEFT_CLOSE = '<path d="M3 3h18v18H3z"/><path d="M9 3v18"/><path
 const ICON_PANEL_LEFT_OPEN = '<path d="M3 3h18v18H3z"/><path d="M9 3v18"/><path d="M14 9l3 3-3 3"/>';
 const ICON_PLUS = '<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>';
 
-let collapsed = false;
+const SIDEBAR_COLLAPSED_KEY = "sidebar-collapsed";
+
+let collapsed = localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === "true";
 
 function toggle(): void {
   collapsed = !collapsed;
+  localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(collapsed));
 }
 
 function iconButton(label: string, onclick: () => void, svgPath: string): m.Vnode {

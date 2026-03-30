@@ -88,3 +88,90 @@ def test_plugin_can_override_builtin_endpoint(
     response = client.get("/api/models")
     assert response.status_code == 200
     assert response.json() == {"custom": True}
+
+
+class SystemPromptInjector:
+    def __init__(self, system_prompt: str) -> None:
+        self.system_prompt = system_prompt
+        self.received_commands: list[list[str]] = []
+
+    @hookimpl
+    def modify_llm_prompt_command(self, command: list[str]) -> None:
+        self.received_commands.append(command)
+        # Insert before the final positional message argument.
+        command[-1:-1] = ["--system", self.system_prompt]
+
+
+class ToolAdder:
+    def __init__(self, tool_name: str) -> None:
+        self.tool_name = tool_name
+
+    @hookimpl
+    def modify_llm_prompt_command(self, command: list[str]) -> None:
+        # Insert -T before the final positional message argument.
+        command[-1:-1] = ["-T", self.tool_name]
+
+
+@pytest.fixture()
+def system_prompt_injector() -> Iterator[SystemPromptInjector]:
+    plugin = SystemPromptInjector("You are a helpful pirate.")
+    plugin_manager = get_plugin_manager()
+    plugin_manager.register(plugin)
+    yield plugin
+    plugin_manager.unregister(plugin)
+
+
+@pytest.fixture()
+def tool_adder() -> Iterator[ToolAdder]:
+    plugin = ToolAdder("web_search")
+    plugin_manager = get_plugin_manager()
+    plugin_manager.register(plugin)
+    yield plugin
+    plugin_manager.unregister(plugin)
+
+
+def test_modify_llm_prompt_command_injects_system_prompt(
+    system_prompt_injector: SystemPromptInjector,
+    client: TestClient,
+) -> None:
+    command = ["llm", "-m", "test-model", "--cid", "conv1", "--td", "--cl", "20", "hello"]
+
+    plugin_manager = get_plugin_manager()
+    plugin_manager.hook.modify_llm_prompt_command(command=command)
+
+    assert "--system" in command
+    system_index = command.index("--system")
+    assert command[system_index + 1] == "You are a helpful pirate."
+    assert len(system_prompt_injector.received_commands) == 1
+    assert system_prompt_injector.received_commands[0] is command
+
+
+def test_modify_llm_prompt_command_can_add_tools(
+    tool_adder: ToolAdder,
+    client: TestClient,
+) -> None:
+    command = ["llm", "-m", "test-model", "--cid", "conv1", "--td", "--cl", "20", "hello"]
+
+    plugin_manager = get_plugin_manager()
+    plugin_manager.hook.modify_llm_prompt_command(command=command)
+
+    assert "-T" in command
+    tool_index = command.index("-T")
+    assert command[tool_index + 1] == "web_search"
+    # Message is still the last argument.
+    assert command[-1] == "hello"
+
+
+def test_multiple_hooks_compose(
+    system_prompt_injector: SystemPromptInjector,
+    tool_adder: ToolAdder,
+    client: TestClient,
+) -> None:
+    command = ["llm", "-m", "test-model", "--cid", "conv1", "--td", "--cl", "20", "hello"]
+
+    plugin_manager = get_plugin_manager()
+    plugin_manager.hook.modify_llm_prompt_command(command=command)
+
+    assert "--system" in command
+    assert "-T" in command
+    assert command[-1] == "hello"
