@@ -1,4 +1,5 @@
 import codecs
+from functools import cache
 import json
 import logging
 import os
@@ -21,6 +22,8 @@ from fastapi.responses import JSONResponse
 from fastapi.responses import Response
 from fastapi.responses import StreamingResponse
 from fastapi.staticfiles import StaticFiles
+from llm import get_models
+from llm import get_models_with_aliases
 
 from llm_webchat.config import Config
 from llm_webchat.database import conversation_exists
@@ -120,7 +123,12 @@ def _favicon() -> Response:
 def _list_conversations_endpoint(request: Request, count: int = 10) -> Response:
     database = request.app.state.database
     conversations = list_conversations(database, count=count)
-    response = ConversationListResponse(conversations=conversations)
+    alias_map = _build_alias_to_canonical_map()
+    resolved_conversations = [
+        conversation.model_copy(update={"model": _resolve_model_alias(conversation.model, alias_map)})
+        for conversation in conversations
+    ]
+    response = ConversationListResponse(conversations=resolved_conversations)
     return JSONResponse(content=response.model_dump())
 
 
@@ -134,13 +142,31 @@ def _list_responses_endpoint(request: Request, conversation_id: str) -> Response
     if not conversation_exists(database, conversation_id):
         return _conversation_not_found_response(conversation_id)
     responses = list_responses(database, conversation_id)
-    response = ResponseListResponse(responses=responses)
+    alias_map = _build_alias_to_canonical_map()
+    resolved_responses = [
+        response_item.model_copy(update={"model": _resolve_model_alias(response_item.model, alias_map)})
+        for response_item in responses
+    ]
+    response = ResponseListResponse(responses=resolved_responses)
     return JSONResponse(content=response.model_dump())
 
 
-def _list_models() -> JSONResponse:
-    from llm import get_models
+@cache
+def _build_alias_to_canonical_map() -> dict[str, str]:
+    alias_map: dict[str, str] = {}
+    for model_with_aliases in get_models_with_aliases():
+        if model_with_aliases.model is not None:
+            canonical_id = model_with_aliases.model.model_id
+            for alias in model_with_aliases.aliases:
+                alias_map[alias] = canonical_id
+    return alias_map
 
+
+def _resolve_model_alias(model_id: str, alias_map: dict[str, str]) -> str:
+    return alias_map.get(model_id, model_id)
+
+
+def _list_models() -> JSONResponse:
     models = get_models()
     model_infos = [ModelInfo(model_id=model.model_id) for model in models]
     response = ModelListResponse(models=model_infos)
