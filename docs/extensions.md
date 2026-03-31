@@ -75,6 +75,21 @@ There's a global `$llm` object that can be used to:
         output_tokens: null,
       });
       ```
+- Add navigation items to the sidebar:
+    - `$llm.registerSidebarItem({ name, icon, route })`: Inserts a new menu item.
+    - Items must be registered **before** the `ready` hook fires (i.e. at the top level of your plugin script).
+    - Example:
+      ```js
+      $llm.registerRoute("/stats", (container) => {
+        container.innerHTML = "<h1>Stats</h1>";
+      });
+
+      $llm.registerSidebarItem({
+        name: "Stats",
+        icon: '<path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/>',
+        route: "/stats",
+      });
+      ```
 - Register for events:
     - `$llm.on("ready")` - When the main app is initialized.
     - `$llm.on("get_conversations")` - When a response to `GET /api/conversations` arrives (similarly below).

@@ -119,6 +119,45 @@ body {
   color: var(--color-text-primary);
 }
 
+/* ── Sidebar plugin item row ── */
+.sidebar-item-row {
+  display: flex;
+  align-items: center;
+  padding: 4px 12px;
+}
+
+.sidebar-item-link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  border-radius: var(--radius-base);
+  padding: 4px 4px;
+  transition:
+    color 120ms,
+    background 120ms;
+  width: 100%;
+}
+
+.sidebar-item-link:hover {
+  color: var(--color-text-primary);
+  background: var(--color-bg-hover);
+}
+
+.sidebar-item-icon {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
+.sidebar-item-label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 /* ── Sidebar new conversation row ── */
 .sidebar-new-conversation-row {
   display: flex;
