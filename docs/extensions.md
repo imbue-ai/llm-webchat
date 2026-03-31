@@ -56,6 +56,24 @@ There's a global `$llm` object that can be used to:
     - `$llm.getConversations()`
     - `$llm.getConversation(conversationId)`
     - `$llm.getModels()`
+- Inject messages into an existing conversation (on the frontend only):
+    - `$llm.insertResponse(conversationId, responseItem)`:
+    - This fires the `insert_response` hook before the item is stored, allowing other plugins to inspect or transform the response.
+    - Example:
+      ```js
+      await $llm.insertResponse("conv-abc", {
+        id: "injected-1",
+        model: "anthropic/claude-opus-4.6",
+        prompt: null,
+        system: null,
+        response: "This message was injected by a plugin.",
+        conversation_id: "conv-abc",
+        datetime_utc: new Date().toISOString(),
+        duration_ms: null,
+        input_tokens: null,
+        output_tokens: null,
+      });
+      ```
 - Register for events:
     - `$llm.on("ready")` - When the main app is initialized.
     - `$llm.on("get_conversations")` - When a response to `GET /api/conversations` arrives (similarly below).
@@ -64,6 +82,7 @@ There's a global `$llm` object that can be used to:
     - `$llm.on("post_conversation_message")`
     - `$llm.on("get_response")`
     - `$llm.on("stream_event")`
+    - `$llm.on("insert_response")` - When `$llm.insertResponse()` is called (before the item is stored). The callback receives `{ conversationId, response }` and can return a modified copy.
     - The registered `on` callbacks can be typically used both to react to an event and to change the data on the fly (e.g. to augment what gets sent to the server).
 - Register custom routes:
     - `$llm.registerRoute(path, handler)` - Add a new frontend route that the plugin owns entirely.

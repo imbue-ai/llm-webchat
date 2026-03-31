@@ -43,6 +43,11 @@ interface StreamEventHookData {
   };
 }
 
+interface InsertResponseHookData {
+  conversationId: string;
+  response: ResponseItem;
+}
+
 type HookDataMap = {
   ready: void;
   get_conversations: GetConversationsHookData;
@@ -51,6 +56,7 @@ type HookDataMap = {
   post_conversation_message: PostConversationMessageHookData;
   get_response: GetResponseHookData;
   stream_event: StreamEventHookData;
+  insert_response: InsertResponseHookData;
 };
 
 type HookName = keyof HookDataMap;
@@ -115,6 +121,7 @@ export type {
   PostConversationMessageHookData,
   GetResponseHookData,
   StreamEventHookData,
+  InsertResponseHookData,
   HookDataMap,
   HookName,
   HookCallback,

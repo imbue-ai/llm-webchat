@@ -1,6 +1,7 @@
 import m from "mithril";
 import { runHook } from "../hooks";
 import { apiUrl } from "../base-path";
+import { getConversations } from "./Conversation";
 
 export interface ResponseItem {
   id: string;
@@ -70,6 +71,29 @@ export function appendSyntheticResponse(
   };
   const existing = responses[conversationId] ?? [];
   responses[conversationId] = [...existing, syntheticItem];
+}
+
+export class ConversationNotFoundForInsertError extends Error {
+  constructor(conversationId: string) {
+    super(`Cannot insert response: conversation not found: ${conversationId}`);
+    this.name = "ConversationNotFoundForInsertError";
+  }
+}
+
+export async function insertResponseItem(conversationId: string, responseItem: ResponseItem): Promise<void> {
+  const conversation = getConversations().find((c) => c.id === conversationId);
+  if (!conversation) {
+    throw new ConversationNotFoundForInsertError(conversationId);
+  }
+
+  const hookResult = await runHook("insert_response", {
+    conversationId,
+    response: responseItem,
+  });
+
+  const existing = responses[conversationId] ?? [];
+  responses[conversationId] = [...existing, hookResult.response];
+  m.redraw();
 }
 
 export async function fetchResponses(conversationId: string): Promise<ResponseItem[]> {

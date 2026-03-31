@@ -3,7 +3,7 @@ import { getConversations } from "./models/Conversation";
 import type { Model } from "./models/Model";
 import { getModels } from "./models/Model";
 import type { ResponseItem } from "./models/Response";
-import { getAllResponses } from "./models/Response";
+import { getAllResponses, insertResponseItem } from "./models/Response";
 import type { HookDataMap, HookName, HookCallback } from "./hooks";
 import { runHook, registerHook } from "./hooks";
 import { claimSlot } from "./slots";
@@ -17,6 +17,7 @@ interface LlmApi {
   getConversations(): Conversation[];
   getConversation(conversationId: string): Conversation | null;
   getModels(): Model[];
+  insertResponse(conversationId: string, responseItem: ResponseItem): Promise<void>;
   on<K extends HookName>(eventName: K, callback: HookCallback<HookDataMap[K]>): void;
 }
 
@@ -51,6 +52,10 @@ const llmApi: LlmApi = {
 
   getModels(): Model[] {
     return [...getModels()];
+  },
+
+  async insertResponse(conversationId: string, responseItem: ResponseItem): Promise<void> {
+    await insertResponseItem(conversationId, responseItem);
   },
 
   on<K extends HookName>(eventName: K, callback: HookCallback<HookDataMap[K]>): void {
