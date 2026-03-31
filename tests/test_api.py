@@ -11,6 +11,7 @@ from fastapi import FastAPI
 from starlette.testclient import TestClient
 
 from llm_webchat.config import Config
+from llm_webchat.server import _build_alias_to_canonical_map
 from llm_webchat.server import create_application
 from tests.helpers import insert_conversations
 from tests.helpers import insert_responses
@@ -43,6 +44,7 @@ def test_list_conversations_resolves_model_aliases(client: TestClient, test_data
     mock_model_with_aliases.model = mock_model
     mock_model_with_aliases.aliases = {"chatgpt", "4o"}
 
+    _build_alias_to_canonical_map.cache_clear()
     with patch("llm_webchat.server.get_models_with_aliases", return_value=[mock_model_with_aliases]):
         response = client.get("/api/conversations")
 
@@ -77,6 +79,7 @@ def test_list_responses_resolves_model_aliases(client: TestClient, test_database
     mock_model_with_aliases.model = mock_model
     mock_model_with_aliases.aliases = {"chatgpt"}
 
+    _build_alias_to_canonical_map.cache_clear()
     with patch("llm_webchat.server.get_models_with_aliases", return_value=[mock_model_with_aliases]):
         response = client.get("/api/conversations/conv1/responses")
 
