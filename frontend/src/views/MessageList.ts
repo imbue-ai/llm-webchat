@@ -358,7 +358,9 @@ export function MessageList(): m.Component<{ conversationId: string | null }> {
     }
 
     if (streamingMessage !== null) {
-      messageNodes.push(renderUserMessage(streamingMessage.userPrompt));
+      if (streamingMessage.userPrompt !== "") {
+        messageNodes.push(renderUserMessage(streamingMessage.userPrompt));
+      }
       if (streamingMessage.error !== null) {
         messageNodes.push(renderErrorMessage(streamingMessage.error, streamingMessage.assistantContent));
       } else {
