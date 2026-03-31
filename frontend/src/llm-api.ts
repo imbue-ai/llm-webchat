@@ -7,13 +7,14 @@ import { getAllResponses, insertResponseItem } from "./models/Response";
 import type { HookDataMap, HookName, HookCallback } from "./hooks";
 import { runHook, registerHook } from "./hooks";
 import { claimSlot } from "./slots";
+import type { SlotRenderCallback } from "./slots";
 import type { RouteRenderCallback, PluginRouteHandler } from "./plugin-routes";
 import { registerPluginRoute } from "./plugin-routes";
 import type { SidebarItemDefinition } from "./sidebar-items";
 import { registerSidebarItem } from "./sidebar-items";
 
 interface LlmApi {
-  claim(slotName: string): boolean;
+  claim(slotName: string, renderCallback?: SlotRenderCallback): boolean;
   registerRoute(path: string, handler: RouteRenderCallback | PluginRouteHandler): boolean;
   getResponse(responseId: string): Promise<ResponseItem | null>;
   getConversations(): Conversation[];
@@ -25,8 +26,8 @@ interface LlmApi {
 }
 
 const llmApi: LlmApi = {
-  claim(slotName: string): boolean {
-    return claimSlot(slotName);
+  claim(slotName: string, renderCallback?: SlotRenderCallback): boolean {
+    return claimSlot(slotName, renderCallback);
   },
 
   registerRoute(path: string, handler: RouteRenderCallback | PluginRouteHandler): boolean {

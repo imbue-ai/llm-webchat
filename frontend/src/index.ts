@@ -21,10 +21,11 @@ async function bootstrap(): Promise<void> {
   const rootElement = document.getElementById("app");
   if (rootElement) {
     const pluginRoutes = getPluginRouteMithrilComponents();
+    const appResolver: m.RouteResolver = { render: () => m(App) };
     m.route(rootElement, "/", {
-      "/": App,
-      "/new": App,
-      "/conversations/:conversationId": App,
+      "/": appResolver,
+      "/new": appResolver,
+      "/conversations/:conversationId": appResolver,
       ...pluginRoutes,
     });
     await runHook("ready");

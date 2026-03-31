@@ -48,6 +48,11 @@ interface InsertResponseHookData {
   response: ResponseItem;
 }
 
+interface SlotRenderedHookData {
+  slotName: string;
+  container: HTMLElement;
+}
+
 type HookDataMap = {
   ready: void;
   get_conversations: GetConversationsHookData;
@@ -57,6 +62,7 @@ type HookDataMap = {
   get_response: GetResponseHookData;
   stream_event: StreamEventHookData;
   insert_response: InsertResponseHookData;
+  slot_rendered: SlotRenderedHookData;
 };
 
 type HookName = keyof HookDataMap;
@@ -122,6 +128,7 @@ export type {
   GetResponseHookData,
   StreamEventHookData,
   InsertResponseHookData,
+  SlotRenderedHookData,
   HookDataMap,
   HookName,
   HookCallback,
