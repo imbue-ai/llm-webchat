@@ -1,5 +1,4 @@
 import codecs
-from functools import cache
 import json
 import logging
 import os
@@ -12,6 +11,7 @@ import traceback
 from collections.abc import AsyncIterator
 from collections.abc import Iterator
 from contextlib import asynccontextmanager
+from functools import cache
 from pathlib import Path
 
 from fastapi import FastAPI
