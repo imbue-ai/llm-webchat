@@ -32,6 +32,7 @@ They can run any code making arbitrary changes to the page. To make this easier,
 - `<div data-slot="header-actions">` - empty container inside the header (for buttons, indicators)
 - `<div data-slot="sidebar">` - the full sidebar
 - `<div data-slot="sidebar-header">` - the sidebar branding row, collapse button, and "New conversation" row
+- `<div data-slot="sidebar-branding">` - the branding area inside the sidebar header row (renders the app title by default; claim it to replace the title with a custom logo, name, etc.)
 - `<div data-slot="sidebar-before-list">` - empty container between the sidebar header and the conversation list (for search, filters)
 - `<div data-slot="conversation-selector-item">` - an individual conversation entry in the sidebar
 - `<div data-slot="conversation-after-header">` - empty container below the header, above the message list (for banners, breadcrumbs)
@@ -56,6 +57,39 @@ There's a global `$llm` object that can be used to:
     - `$llm.getConversations()`
     - `$llm.getConversation(conversationId)`
     - `$llm.getModels()`
+- Inject messages into an existing conversation (on the frontend only):
+    - `$llm.insertResponse(conversationId, responseItem)`:
+    - This fires the `insert_response` hook before the item is stored, allowing other plugins to inspect or transform the response.
+    - Example:
+      ```js
+      await $llm.insertResponse("conv-abc", {
+        id: "injected-1",
+        model: "anthropic/claude-opus-4.6",
+        prompt: null,
+        system: null,
+        response: "This message was injected by a plugin.",
+        conversation_id: "conv-abc",
+        datetime_utc: new Date().toISOString(),
+        duration_ms: null,
+        input_tokens: null,
+        output_tokens: null,
+      });
+      ```
+- Add navigation items to the sidebar:
+    - `$llm.registerSidebarItem({ name, icon, route })`: Inserts a new menu item.
+    - Items must be registered **before** the `ready` hook fires (i.e. at the top level of your plugin script).
+    - Example:
+      ```js
+      $llm.registerRoute("/stats", (container) => {
+        container.innerHTML = "<h1>Stats</h1>";
+      });
+
+      $llm.registerSidebarItem({
+        name: "Stats",
+        icon: '<path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/>',
+        route: "/stats",
+      });
+      ```
 - Register for events:
     - `$llm.on("ready")` - When the main app is initialized.
     - `$llm.on("get_conversations")` - When a response to `GET /api/conversations` arrives (similarly below).
@@ -64,6 +98,7 @@ There's a global `$llm` object that can be used to:
     - `$llm.on("post_conversation_message")`
     - `$llm.on("get_response")`
     - `$llm.on("stream_event")`
+    - `$llm.on("insert_response")` - When `$llm.insertResponse()` is called (before the item is stored). The callback receives `{ conversationId, response }` and can return a modified copy.
     - The registered `on` callbacks can be typically used both to react to an event and to change the data on the fly (e.g. to augment what gets sent to the server).
 - Register custom routes:
     - `$llm.registerRoute(path, handler)` - Add a new frontend route that the plugin owns entirely.

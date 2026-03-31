@@ -3,12 +3,14 @@ import { getConversations } from "./models/Conversation";
 import type { Model } from "./models/Model";
 import { getModels } from "./models/Model";
 import type { ResponseItem } from "./models/Response";
-import { getAllResponses } from "./models/Response";
+import { getAllResponses, insertResponseItem } from "./models/Response";
 import type { HookDataMap, HookName, HookCallback } from "./hooks";
 import { runHook, registerHook } from "./hooks";
 import { claimSlot } from "./slots";
 import type { RouteRenderCallback, PluginRouteHandler } from "./plugin-routes";
 import { registerPluginRoute } from "./plugin-routes";
+import type { SidebarItemDefinition } from "./sidebar-items";
+import { registerSidebarItem } from "./sidebar-items";
 
 interface LlmApi {
   claim(slotName: string): boolean;
@@ -17,6 +19,8 @@ interface LlmApi {
   getConversations(): Conversation[];
   getConversation(conversationId: string): Conversation | null;
   getModels(): Model[];
+  insertResponse(conversationId: string, responseItem: ResponseItem): Promise<void>;
+  registerSidebarItem(definition: SidebarItemDefinition): void;
   on<K extends HookName>(eventName: K, callback: HookCallback<HookDataMap[K]>): void;
 }
 
@@ -51,6 +55,14 @@ const llmApi: LlmApi = {
 
   getModels(): Model[] {
     return [...getModels()];
+  },
+
+  async insertResponse(conversationId: string, responseItem: ResponseItem): Promise<void> {
+    await insertResponseItem(conversationId, responseItem);
+  },
+
+  registerSidebarItem(definition: SidebarItemDefinition): void {
+    registerSidebarItem(definition);
   },
 
   on<K extends HookName>(eventName: K, callback: HookCallback<HookDataMap[K]>): void {

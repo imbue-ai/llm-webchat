@@ -11,6 +11,7 @@ from fastapi import FastAPI
 from starlette.testclient import TestClient
 
 from llm_webchat.config import Config
+from llm_webchat.server import _build_alias_to_canonical_map
 from llm_webchat.server import create_application
 from tests.helpers import insert_conversations
 from tests.helpers import insert_responses
@@ -32,6 +33,59 @@ def test_list_conversations(client: TestClient, test_database: sqlite_utils.Data
     assert data["conversations"][0]["id"] == "conv1"
     assert data["conversations"][0]["name"] == "Test conversation"
     assert data["conversations"][0]["model"] == "gpt-4"
+
+
+def test_list_conversations_resolves_model_aliases(client: TestClient, test_database: sqlite_utils.Database) -> None:
+    insert_conversations(test_database, [{"id": "conv1", "name": "Aliased chat", "model": "chatgpt"}])
+
+    mock_model = MagicMock()
+    mock_model.model_id = "gpt-4o"
+    mock_model_with_aliases = MagicMock()
+    mock_model_with_aliases.model = mock_model
+    mock_model_with_aliases.aliases = {"chatgpt", "4o"}
+
+    _build_alias_to_canonical_map.cache_clear()
+    with patch("llm_webchat.server.get_models_with_aliases", return_value=[mock_model_with_aliases]):
+        response = client.get("/api/conversations")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["conversations"][0]["model"] == "gpt-4o"
+
+
+def test_list_responses_resolves_model_aliases(client: TestClient, test_database: sqlite_utils.Database) -> None:
+    insert_conversations(test_database, [{"id": "conv1", "name": "Test", "model": "chatgpt"}])
+    insert_responses(
+        test_database,
+        [
+            {
+                "id": "resp1",
+                "model": "chatgpt",
+                "prompt": "Hello",
+                "system": None,
+                "response": "Hi",
+                "conversation_id": "conv1",
+                "datetime_utc": "2025-01-01T00:00:00",
+                "duration_ms": 100,
+                "input_tokens": 5,
+                "output_tokens": 3,
+            }
+        ],
+    )
+
+    mock_model = MagicMock()
+    mock_model.model_id = "gpt-4o"
+    mock_model_with_aliases = MagicMock()
+    mock_model_with_aliases.model = mock_model
+    mock_model_with_aliases.aliases = {"chatgpt"}
+
+    _build_alias_to_canonical_map.cache_clear()
+    with patch("llm_webchat.server.get_models_with_aliases", return_value=[mock_model_with_aliases]):
+        response = client.get("/api/conversations/conv1/responses")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["responses"][0]["model"] == "gpt-4o"
 
 
 def test_list_conversations_with_count(client: TestClient, test_database: sqlite_utils.Database) -> None:
@@ -465,7 +519,7 @@ def test_list_models(client: TestClient) -> None:
     mock_model_2 = MagicMock()
     mock_model_2.model_id = "claude-3-opus"
 
-    with patch("llm.get_models", return_value=[mock_model_1, mock_model_2]):
+    with patch("llm_webchat.server.get_models", return_value=[mock_model_1, mock_model_2]):
         response = client.get("/api/models")
 
     assert response.status_code == 200
