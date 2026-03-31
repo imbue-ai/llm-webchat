@@ -52,6 +52,22 @@ There's a global `$llm` object that can be used to:
     - When claimed, only the component container is rendered by the core loop (contents are expected to be provided by the plugin).
     - Returns true when the claim succeeded, false otherwise (e.g. when already claimed by another plugin).
     - (This is to prevent conflicts between the renders done by the core mithril.js loop and the renders done by the plugins.)
+    - An optional render callback can be passed as a second argument. The callback receives the slot's DOM element and is invoked both on first mount and whenever the slot's DOM is recreated (e.g. after navigating to a plugin route and back). **Using a render callback is strongly recommended** — without one, plugin-injected DOM can be lost when the component tree is rebuilt.
+    - Example:
+      ```js
+      $llm.claim("sidebar-branding", (container) => {
+        container.innerHTML = '<span class="my-brand">Acme Chat</span>';
+      });
+      ```
+    - For more complex cases, you can also listen for the `slot_rendered` hook instead of (or in addition to) providing a render callback:
+      ```js
+      $llm.claim("sidebar-branding");
+      $llm.on("slot_rendered", ({ slotName, container }) => {
+        if (slotName === "sidebar-branding") {
+          container.innerHTML = '<span class="my-brand">Acme Chat</span>';
+        }
+      });
+      ```
 - Get specific parts of the current page state:
     - `$llm.getResponse(responseId)`
     - `$llm.getConversations()`
@@ -99,6 +115,7 @@ There's a global `$llm` object that can be used to:
     - `$llm.on("get_response")`
     - `$llm.on("stream_event")`
     - `$llm.on("insert_response")` - When `$llm.insertResponse()` is called (before the item is stored). The callback receives `{ conversationId, response }` and can return a modified copy.
+    - `$llm.on("slot_rendered")` - When a claimed slot's DOM element is (re)created.
     - The registered `on` callbacks can be typically used both to react to an event and to change the data on the fly (e.g. to augment what gets sent to the server).
 - Register custom routes:
     - `$llm.registerRoute(path, handler)` - Add a new frontend route that the plugin owns entirely.
