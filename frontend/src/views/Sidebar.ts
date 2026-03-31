@@ -52,7 +52,19 @@ export const Sidebar: m.Component = {
             ? null
             : [
                 m("div", { class: "sidebar-branding-row" }, [
-                  m("span", { class: "sidebar-branding-title" }, "LLM Webchat"),
+                  m(
+                    "div",
+                    {
+                      class: "sidebar-branding",
+                      "data-slot": "sidebar-branding",
+                      onbeforeupdate() {
+                        return !isSlotClaimed("sidebar-branding");
+                      },
+                    },
+                    isSlotClaimed("sidebar-branding")
+                      ? null
+                      : m("span", { class: "sidebar-branding-title" }, "LLM Webchat"),
+                  ),
                   iconButton("Collapse sidebar", toggle, ICON_PANEL_LEFT_CLOSE),
                 ]),
                 m("div", { class: "sidebar-new-conversation-row" }, [

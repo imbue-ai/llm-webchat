@@ -32,6 +32,7 @@ They can run any code making arbitrary changes to the page. To make this easier,
 - `<div data-slot="header-actions">` - empty container inside the header (for buttons, indicators)
 - `<div data-slot="sidebar">` - the full sidebar
 - `<div data-slot="sidebar-header">` - the sidebar branding row, collapse button, and "New conversation" row
+- `<div data-slot="sidebar-branding">` - the branding area inside the sidebar header row (renders the app title by default; claim it to replace the title with a custom logo, name, etc.)
 - `<div data-slot="sidebar-before-list">` - empty container between the sidebar header and the conversation list (for search, filters)
 - `<div data-slot="conversation-selector-item">` - an individual conversation entry in the sidebar
 - `<div data-slot="conversation-after-header">` - empty container below the header, above the message list (for banners, breadcrumbs)
