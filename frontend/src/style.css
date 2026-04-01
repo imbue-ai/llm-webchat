@@ -79,29 +79,35 @@ body {
   display: none;
 }
 
-.sidebar-icon-button {
+/* ── Collapsed icon button – chromeless ── */
+.sidebar-collapsed-icon-button {
   display: flex;
   align-items: center;
   justify-content: center;
   width: 28px;
   height: 28px;
   border-radius: var(--radius-base);
-  border: 1px solid var(--color-border);
-  background-color: var(--color-bg);
+  border: none;
+  background: none;
   color: var(--color-text-secondary);
   cursor: pointer;
-  transition: all 120ms;
+  transition:
+    background 100ms,
+    color 100ms;
 }
 
-.sidebar-icon-button:hover {
-  background-color: var(--color-accent-light);
-  border-color: var(--color-accent);
-  color: var(--color-accent);
+.sidebar-collapsed-icon-button:hover {
+  background: var(--color-bg-hover);
+  color: var(--color-text-primary);
 }
 
-.sidebar-icon-button svg {
-  width: 14px;
-  height: 14px;
+.sidebar-collapsed-icon-button:active {
+  background: var(--color-bg-active);
+}
+
+.sidebar-collapsed-icon-button svg {
+  width: 16px;
+  height: 16px;
 }
 
 /* ── Sidebar branding row ── */
@@ -119,56 +125,81 @@ body {
   color: var(--color-text-primary);
 }
 
-/* ── Sidebar plugin item row ── */
-.sidebar-item-row {
+/* ── Inline icon button (branding row collapse toggle) ── */
+.sidebar-inline-icon-button {
   display: flex;
   align-items: center;
-  padding: 4px 12px;
-}
-
-.sidebar-item-link {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 13px;
-  color: var(--color-text-secondary);
-  text-decoration: none;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
   border-radius: var(--radius-base);
-  padding: 4px 4px;
+  border: none;
+  background: none;
+  color: var(--color-text-secondary);
+  cursor: pointer;
   transition:
-    color 120ms,
-    background 120ms;
-  width: 100%;
-}
-
-.sidebar-item-link:hover {
-  color: var(--color-text-primary);
-  background: var(--color-bg-hover);
-}
-
-.sidebar-item-icon {
-  width: 14px;
-  height: 14px;
+    background 100ms,
+    color 100ms;
   flex-shrink: 0;
 }
 
-.sidebar-item-label {
+.sidebar-inline-icon-button:hover {
+  background: var(--color-bg-hover);
+  color: var(--color-text-primary);
+}
+
+.sidebar-inline-icon-button:active {
+  background: var(--color-bg-active);
+}
+
+.sidebar-inline-icon-button svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* ── Sidebar action rows (registered items + new conversation) ── */
+.sidebar-action-rows {
+  display: flex;
+  flex-direction: column;
+  padding: 2px 8px 6px;
+  gap: 1px;
+}
+
+.sidebar-action-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px;
+  border-radius: var(--radius-base);
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    background 100ms,
+    color 100ms;
+}
+
+.sidebar-action-row:hover {
+  background: var(--color-bg-hover);
+  color: var(--color-text-primary);
+}
+
+.sidebar-action-row:active {
+  background: var(--color-bg-active);
+}
+
+.sidebar-action-row-icon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  color: inherit;
+}
+
+.sidebar-action-row-label {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-/* ── Sidebar new conversation row ── */
-.sidebar-new-conversation-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 4px 12px 8px;
-}
-
-.sidebar-new-conversation-label {
-  font-size: 13px;
-  color: var(--color-text-secondary);
 }
 
 /* ── Conversation list ── */
