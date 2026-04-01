@@ -115,7 +115,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 12px 8px;
+  padding: 16px 12px 8px 20px;
 }
 
 .sidebar-branding-title {
